@@ -1,0 +1,2895 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metabolic step test</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e5e5e5;
+    --border-strong: #c5c5c5;
+    --text: #1a1a1a;
+    --text-muted: #666;
+    --text-faint: #999;
+    --grid: rgba(0,0,0,0.07);
+    --axis: rgba(0,0,0,0.55);
+    --label: rgba(0,0,0,0.78);
+    --point-hollow-fill: #ffffff;
+    --zero-line: rgba(0,0,0,0.3);
+    --input-bg: #ffffff;
+    --popover-bg: #ffffff;
+    --popover-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --surface: #232323; --border: #383838; --border-strong: #4a4a4a;
+      --text: #f0f0f0; --text-muted: #aaa; --text-faint: #777;
+      --grid: rgba(255,255,255,0.08); --axis: rgba(255,255,255,0.55); --label: rgba(255,255,255,0.88);
+      --point-hollow-fill: #232323; --zero-line: rgba(255,255,255,0.35);
+      --input-bg: #2a2a2a; --popover-bg: #2a2a2a; --popover-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.5; }
+  .container { max-width: 1500px; margin: 0 auto; }
+  header { margin-bottom: 16px; }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 6px; }
+  .subtitle { color: var(--text-muted); font-size: 13px; margin: 0; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 18px 16px; margin-bottom: 16px; }
+  .panel h2 { font-size: 13px; font-weight: 500; margin: 0 0 12px; color: var(--text-muted);
+    letter-spacing: 0.04em; text-transform: uppercase; }
+  .row-heading {
+    font-size: 11px; font-weight: 600; margin: 14px 0 8px;
+    color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase;
+    padding-bottom: 4px; border-bottom: 1px dashed var(--border);
+  }
+  .row-heading:first-of-type { margin-top: 0; }
+
+  .athlete-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .field input { background: var(--input-bg); border: 1px solid var(--border); border-radius: 5px;
+    padding: 6px 9px; font: inherit; font-size: 13px; color: var(--text); }
+  .field input:focus { outline: none; border-color: #2e7ab7; box-shadow: 0 0 0 2px rgba(46,122,183,0.2); }
+  .field-id { grid-column: 1 / -1; }
+  .field-id input { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .stat { border-left: 3px solid var(--stat-color, #888); padding-left: 12px; }
+  .stat-name { font-size: 12px; color: var(--text-muted); margin: 0 0 2px; font-weight: 500; }
+  .stat-value { font-size: 22px; font-weight: 500; margin: 0; color: var(--text); line-height: 1.15; }
+  .stat-emphasis .stat-value { font-size: 32px; font-weight: 600; }
+  .stat-emphasis .stat-name { font-size: 12px; }
+  .stat-value .range { font-size: 12px; color: var(--text-muted); font-weight: 400; margin-left: 6px; }
+  .stat-relative { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; }
+  .stat-note { font-size: 11px; color: var(--text-faint); line-height: 1.45; margin: 6px 0 0; }
+  .stat-input-row { display: flex; gap: 6px; align-items: center; margin-top: 7px;
+    font-size: 11px; color: var(--text-muted); }
+  .stat-input { background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 6px; width: 70px; font: inherit; font-size: 12px; color: var(--text); text-align: right; }
+  .stat-input:focus { outline: none; border-color: var(--stat-color, #2e7ab7); }
+  .btn-apply { background: transparent; border: 1px solid var(--stat-color, #888);
+    color: var(--stat-color, #666); border-radius: 4px; padding: 3px 8px;
+    font: inherit; font-size: 11px; cursor: pointer; line-height: 1.2; }
+  .btn-apply:hover { background: var(--stat-color, #ccc); color: #fff; }
+  .stat-toggle { background: none; border: none; padding: 0; margin-top: 6px; color: var(--text-muted);
+    font-size: 10.5px; cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 2px; }
+  .stat-detail { font-size: 10.5px; color: var(--text-faint); line-height: 1.5;
+    max-height: 0; overflow: hidden; transition: max-height 0.2s ease; }
+  .stat-detail.open { max-height: 240px; margin-top: 4px; }
+
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .toolbar .hint { font-size: 11px; color: var(--text-faint); margin-right: auto; }
+  .btn { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px;
+    padding: 6px 12px; font: inherit; font-size: 12px; color: var(--text); cursor: pointer; }
+  .btn:hover { background: var(--bg); }
+  .btn-primary { background: #2e7ab7; border-color: #2e7ab7; color: white; font-weight: 600;
+    padding: 8px 16px; font-size: 13px; }
+  .btn-primary:hover { background: #246297; border-color: #246297; }
+  .save-toast { font-size: 11px; color: #2d7a3a; opacity: 0; transition: opacity 0.3s; }
+  .save-toast.visible { opacity: 1; }
+
+  .legend { display: flex; gap: 22px; align-items: center; font-size: 12px; color: var(--text-muted);
+    margin-bottom: 14px; flex-wrap: wrap; }
+  .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .swatch-filled, .swatch-hollow { display: inline-block; width: 11px; height: 11px; border-radius: 50%; }
+  .swatch-filled { background: #185fa5; }
+  .swatch-hollow { background: var(--point-hollow-fill); border: 1.5px solid #185fa5; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .card-title { font-size: 16px; font-weight: 500; margin: 0; color: var(--text); }
+  .card-title .unit { font-weight: 400; color: var(--text-muted); }
+  .card-note { font-size: 12px; color: var(--text-faint); margin: 3px 0 6px; }
+  .chart-wrap { position: relative; width: 100%; height: 320px; }
+
+  /* Recovery comparison strip below the chart */
+  .recovery-strip {
+    margin-top: 8px; padding: 8px 10px;
+    background: rgba(124, 58, 237, 0.05);
+    border: 1px solid rgba(124, 58, 237, 0.18);
+    border-radius: 6px;
+    font-size: 11px; line-height: 1.5;
+  }
+  .recovery-strip-label {
+    color: var(--text-muted); font-size: 10px; font-weight: 500;
+    letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 3px;
+  }
+  .recovery-strip-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 12px;
+  }
+  .rec-row { display: flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; }
+  .rec-row .rec-w   { color: var(--text-muted); min-width: 36px; }
+  .rec-row .rec-vals { color: var(--text); }
+  .rec-row .rec-delta { color: var(--text); font-weight: 600; }
+  .rec-row .rec-delta-flat { color: var(--text-muted); font-weight: 500; }
+  /* 2-up grid on narrow screens */
+  @media (max-width: 600px) {
+    .recovery-strip-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .click-popover { position: fixed; background: var(--popover-bg); border: 1px solid var(--border-strong);
+    border-radius: 8px; box-shadow: var(--popover-shadow); padding: 8px 10px; z-index: 1000;
+    display: none; min-width: 200px; }
+  .click-popover.visible { display: block; }
+  .popover-header { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+  .popover-header strong { color: var(--text); font-weight: 600; }
+  .popover-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+  .popover-btn { background: transparent; border: 1.5px solid; border-radius: 5px;
+    padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; line-height: 1.2; }
+  .popover-btn:hover { color: white; }
+  .popover-btn[data-kind="FM"]  { color: #c2410c; border-color: #c2410c; }
+  .popover-btn[data-kind="FM"]:hover  { background: #c2410c; }
+  .popover-btn[data-kind="VT1"] { color: #2e7ab7; border-color: #2e7ab7; }
+  .popover-btn[data-kind="VT1"]:hover { background: #2e7ab7; }
+  .popover-btn[data-kind="BP"]  { color: #7c3aed; border-color: #7c3aed; }
+  .popover-btn[data-kind="BP"]:hover  { background: #7c3aed; }
+  .popover-btn[data-kind="VT2"] { color: #c43c3c; border-color: #c43c3c; }
+  .popover-btn[data-kind="VT2"]:hover { background: #c43c3c; }
+
+  footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border);
+    color: var(--text-muted); font-size: 12px; }
+
+  /* ============== Cover header ============== */
+  .cover {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2e5a8c 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex; align-items: center; gap: 24px;
+  }
+  .cover-logo {
+    width: 72px; height: 72px; flex-shrink: 0;
+    background: rgba(255,255,255,0.12);
+    border: 2px dashed rgba(255,255,255,0.35);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.7); font-size: 9px; text-align: center; padding: 4px;
+    line-height: 1.2;
+  }
+  .cover-logo img { width: 100%; height: 100%; object-fit: contain; border-radius: 8px; }
+  .cover-body { flex: 1; }
+  .cover-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.18em;
+    text-transform: uppercase; color: rgba(255,255,255,0.75); margin: 0 0 4px;
+  }
+  .cover-title {
+    font-size: 28px; font-weight: 600; margin: 0 0 8px; color: white;
+  }
+  .cover-meta {
+    display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px;
+    color: rgba(255,255,255,0.92);
+  }
+  .cover-meta strong { color: white; font-weight: 600; }
+
+  /* ============== Section panels ============== */
+  .section-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .section-panel h2.section-title {
+    font-size: 18px; font-weight: 600; color: var(--text);
+    margin: 0 0 4px; letter-spacing: 0; text-transform: none;
+    padding-bottom: 6px; border-bottom: 2px solid var(--stat-color, #888);
+    display: inline-block;
+  }
+  .section-subtitle { font-size: 12px; color: var(--text-faint); margin: 4px 0 12px; }
+  .section-cards { margin-bottom: 14px; }
+  .section-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 16px; }
+  .notes-area {
+    margin-top: 12px;
+    background: rgba(0,0,0,0.02);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    .notes-area { background: rgba(255,255,255,0.03); }
+  }
+  .notes-area label {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    display: block; margin-bottom: 4px;
+  }
+  .notes-area textarea {
+    width: 100%; min-height: 60px;
+    border: none; background: transparent; resize: vertical;
+    font: inherit; font-size: 13px; color: var(--text);
+    padding: 4px 0; line-height: 1.5;
+  }
+  .notes-area textarea:focus { outline: none; }
+  .notes-area textarea::placeholder { color: var(--text-faint); font-style: italic; }
+
+  /* HR @ thresholds list */
+  .hr-row-list { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 0; }
+  .hr-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; line-height: 1.4; }
+  .hr-row .hr-kind { font-weight: 600; min-width: 32px; }
+  .hr-row .hr-power { color: var(--text-muted); flex: 1; text-align: right; padding-right: 6px; font-variant-numeric: tabular-nums; }
+  .hr-row .hr-bpm { color: var(--text); font-weight: 500; min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+  .hr-row[data-kind="FM"]  .hr-kind { color: #c2410c; }
+  .hr-row[data-kind="CM"]  .hr-kind { color: #2d7a3a; }
+  .hr-row[data-kind="VT1"] .hr-kind { color: #2e7ab7; }
+  .hr-row[data-kind="BP"]  .hr-kind { color: #7c3aed; }
+  .hr-row[data-kind="VT2"] .hr-kind { color: #c43c3c; }
+
+  /* ============== PRINT / PDF STYLES ============== */
+  @media print {
+    @page { size: A4 landscape; margin: 0.7cm; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { padding: 0 !important; background: white !important; color: black !important; font-size: 11px; }
+    .container { max-width: 100% !important; }
+    h1 { font-size: 16px !important; }
+    .subtitle { font-size: 11px !important; }
+
+    /* Force light theme in print regardless of user's OS preference */
+    :root, body {
+      --bg: white !important; --surface: white !important;
+      --border: #bbb !important; --border-strong: #888 !important;
+      --text: #000 !important; --text-muted: #444 !important; --text-faint: #666 !important;
+      --grid: rgba(0,0,0,0.10) !important; --axis: rgba(0,0,0,0.7) !important; --label: rgba(0,0,0,0.85) !important;
+      --point-hollow-fill: white !important; --zero-line: rgba(0,0,0,0.35) !important;
+      --input-bg: white !important;
+    }
+
+    /* Hide interactive controls and feedback */
+    .toolbar, .stat-input-row, .stat-toggle, .click-popover, .save-toast,
+    #btn-print, #btn-reset { display: none !important; }
+
+    /* Show all contributions detail panels expanded */
+    .stat-detail { max-height: none !important; margin-top: 4px !important; }
+
+    /* Athlete form: render as static text */
+    .field input {
+      border: none !important; padding: 0 !important; background: transparent !important;
+      font-weight: 600 !important; color: #000 !important;
+    }
+    .field input::-webkit-outer-spin-button, .field input::-webkit-inner-spin-button { display: none; }
+
+    /* Tighter panels */
+    .panel, .section-panel { padding: 8px 10px 10px !important; margin-bottom: 8px !important; page-break-inside: avoid; }
+    .panel h2 { font-size: 10px !important; margin: 0 0 6px !important; }
+    .section-panel h2.section-title { font-size: 13px !important; }
+    .section-subtitle { font-size: 10px !important; }
+
+    /* Cover header in print: compact, light background */
+    .cover { background: #2e5a8c !important; color: white !important; padding: 12px 16px !important; margin-bottom: 8px !important; }
+    .cover-title { font-size: 18px !important; }
+    .cover-meta { font-size: 11px !important; gap: 12px !important; }
+    .cover-eyebrow { font-size: 9px !important; }
+    .cover-logo { width: 50px !important; height: 50px !important; }
+
+    /* Notes area: render as static text */
+    .notes-area textarea { display: block; font-size: 11px !important; min-height: 0 !important; }
+    .notes-area label { font-size: 9px !important; }
+
+    /* Summary grid: 3 columns for print */
+    .summary-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+    .stat { padding-left: 8px !important; }
+    .stat-value { font-size: 16px !important; }
+    .stat-emphasis .stat-value { font-size: 22px !important; }
+    .stat-name { font-size: 10px !important; }
+    .stat-note { font-size: 9.5px !important; margin-top: 3px !important; }
+
+    /* Charts: 2 across, prevent breaking */
+    .grid, .section-charts { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+    .card { page-break-inside: avoid; padding: 8px 10px !important; }
+    .card-title { font-size: 12px !important; }
+    .card-note { font-size: 10px !important; }
+    .chart-wrap { height: 230px !important; }
+
+    .legend { margin-bottom: 6px !important; font-size: 10px !important; }
+    footer { font-size: 10px !important; margin-top: 10px !important; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ============== COVER HEADER ============== -->
+  <div class="cover">
+    <div class="cover-logo" id="cover-logo">
+      <span>LOGO<br>placeholder</span>
+    </div>
+    <div class="cover-body">
+      <p class="cover-eyebrow">Metabolic Step Test Report</p>
+      <h1 class="cover-title" id="cover-name">Chay Genoway</h1>
+      <div class="cover-meta">
+        <span><strong id="cover-date">April 28, 2026</strong></span>
+        <span>Height: <strong id="cover-height">175 cm</strong></span>
+        <span>Weight: <strong id="cover-weight">65.8 kg</strong></span>
+        <span style="margin-left:auto;font-size:11px;font-weight:400;color:rgba(255,255,255,0.6);font-family:ui-monospace,monospace;">build 2026-04-29-fix20</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test info form (compact, edit-friendly) -->
+  <section class="panel">
+    <h2>Test info</h2>
+    <div class="athlete-grid">
+      <div class="field"><label for="athlete-name">Athlete name</label><input id="athlete-name" type="text" placeholder="Last, First"></div>
+      <div class="field"><label for="athlete-height">Height (cm)</label><input id="athlete-height" type="number" min="100" max="250" step="0.5" placeholder="—"></div>
+      <div class="field"><label for="athlete-weight">Weight (kg)</label><input id="athlete-weight" type="number" min="30" max="200" step="0.1" placeholder="—"></div>
+      <div class="field"><label for="athlete-date">Test date</label><input id="athlete-date" type="date"></div>
+      <div class="field field-id"><label for="test-id">Test ID (saved-state key)</label><input id="test-id" type="text" placeholder="auto from name + date"></div>
+    </div>
+  </section>
+
+  <p class="subtitle" style="margin-bottom:14px;">3 long (5-min) steps from 120–160 W and 10 short (1-min) steps from 170–260 W. The 100 W warm-up step is excluded.</p>
+
+  <!-- ============== PERFORMANCE LANDMARKS ============== -->
+  <section class="section-panel" style="--stat-color:#1f5dac;">
+    <h2 class="section-title" style="--stat-color:#1f5dac;">Performance landmarks</h2>
+    <p class="section-subtitle">Power output, HR at thresholds, and ventilatory thresholds.</p>
+    <div class="section-cards">
+      <div class="summary-grid">
+        <div class="stat stat-emphasis" style="--stat-color:#1f5dac;">
+          <p class="stat-name">Peak 1-min power</p>
+          <p class="stat-value" id="peak-power">259 W</p>
+          <p class="stat-relative" id="peak-power-rec">Recovery: 179.3 W  (-31%)</p>
+          <p class="stat-note">Highest rolling 1-min mean power across the test.</p>
+        </div>
+        <div class="stat" id="stat-hr-thresholds" style="--stat-color:#a32d2d;">
+          <p class="stat-name">HR at thresholds (last 20 s)</p>
+          <div class="hr-row-list" id="hr-thresholds-list"><div class="hr-row" data-kind="FM">
+         <span class="hr-kind">FM</span>
+         <span class="hr-power">120 W</span>
+         <span class="hr-bpm">114 bpm</span>
+       </div><div class="hr-row" data-kind="CM">
+         <span class="hr-kind">CM</span>
+         <span class="hr-power">124 W</span>
+         <span class="hr-bpm">117 bpm</span>
+       </div><div class="hr-row" data-kind="VT1">
+         <span class="hr-kind">VT1</span>
+         <span class="hr-power">170 W</span>
+         <span class="hr-bpm">146 bpm</span>
+       </div><div class="hr-row" data-kind="BP">
+         <span class="hr-kind">BP</span>
+         <span class="hr-power">190 W</span>
+         <span class="hr-bpm">156 bpm</span>
+       </div><div class="hr-row" data-kind="VT2">
+         <span class="hr-kind">VT2</span>
+         <span class="hr-power">220 W</span>
+         <span class="hr-bpm">168 bpm</span>
+       </div></div>
+          <p class="stat-note">HR linearly interpolated from per-step end-of-step (last 20 s) HR at each threshold's mean power.</p>
+        </div>
+        <div class="stat stat-emphasis" style="--stat-color:#2e7ab7;">
+          <p class="stat-name">VT1 (aerobic threshold)</p>
+          <p class="stat-value"><span id="vt1-value">170 W</span> <span class="range" id="vt1-range">(170–170 W, n=7, SD 0.0)</span></p>
+          <p class="stat-relative" id="vt1-pct">66% of peak 1-min power (259 W)</p>
+          <div class="stat-input-row">Set all to <input type="number" min="80" max="320" step="1" class="stat-input" data-kind="VT1"> W
+            <button class="btn-apply" data-kind="VT1">Apply</button></div>
+          <p class="stat-note">Drag the blue lines, click data points, or type. Mean shown across charts.</p>
+          <button type="button" class="stat-toggle" data-toggle="vt1-detail">show contributions ▾</button>
+          <div class="stat-detail" id="vt1-detail"><div>Ventilation (VE): <strong>170 W</strong></div><div>Respiratory rate: <strong>170 W</strong></div><div>Watts per breath: <strong>170 W</strong></div><div>VE / VO₂: <strong>170 W</strong></div><div>VE / VCO₂: <strong>170 W</strong></div><div>Heart rate: <strong>170 W</strong></div><div>Watts per heartbeat: <strong>170 W</strong></div></div>
+        </div>
+        <div class="stat stat-emphasis" style="--stat-color:#7c3aed;">
+          <p class="stat-name">BP (balance point)</p>
+          <p class="stat-value"><span id="bp-value">190 W</span> <span class="range" id="bp-range">(190–190 W, n=7, SD 0.0)</span></p>
+          <p class="stat-relative" id="bp-pct">73% of peak 1-min power (259 W)</p>
+          <div class="stat-input-row">Set all to <input type="number" min="80" max="320" step="1" class="stat-input" data-kind="BP"> W
+            <button class="btn-apply" data-kind="BP">Apply</button></div>
+          <p class="stat-note">Constrained between VT1 and VT2 per chart. Auto-pushed if VT1 / VT2 cross it.</p>
+          <button type="button" class="stat-toggle" data-toggle="bp-detail">show contributions ▾</button>
+          <div class="stat-detail" id="bp-detail"><div>Ventilation (VE): <strong>190 W</strong></div><div>Respiratory rate: <strong>190 W</strong></div><div>Watts per breath: <strong>190 W</strong></div><div>VE / VO₂: <strong>190 W</strong></div><div>VE / VCO₂: <strong>190 W</strong></div><div>Heart rate: <strong>190 W</strong></div><div>Watts per heartbeat: <strong>190 W</strong></div></div>
+        </div>
+        <div class="stat stat-emphasis" style="--stat-color:#c43c3c;">
+          <p class="stat-name">VT2 (RCP)</p>
+          <p class="stat-value"><span id="vt2-value">220 W</span> <span class="range" id="vt2-range">(220–220 W, n=7, SD 0.0)</span></p>
+          <p class="stat-relative" id="vt2-pct">85% of peak 1-min power (259 W)</p>
+          <div class="stat-input-row">Set all to <input type="number" min="80" max="320" step="1" class="stat-input" data-kind="VT2"> W
+            <button class="btn-apply" data-kind="VT2">Apply</button></div>
+          <p class="stat-note">Drag the red lines, click data points, or type. Mean shown across charts.</p>
+          <button type="button" class="stat-toggle" data-toggle="vt2-detail">show contributions ▾</button>
+          <div class="stat-detail" id="vt2-detail"><div>Ventilation (VE): <strong>220 W</strong></div><div>Respiratory rate: <strong>220 W</strong></div><div>Watts per breath: <strong>220 W</strong></div><div>VE / VO₂: <strong>220 W</strong></div><div>VE / VCO₂: <strong>220 W</strong></div><div>Heart rate: <strong>220 W</strong></div><div>Watts per heartbeat: <strong>220 W</strong></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="notes-area">
+      <label>Notes — performance</label>
+      <textarea data-notes-key="performance" placeholder="Athlete's peak power output, threshold positions, and any pacing observations…"></textarea>
+    </div>
+    <div class="toolbar">
+      <span class="hint"><strong>Three ways to set a threshold:</strong> drag a colored line • click any data point and pick a threshold • type a value above to set every chart at once</span>
+      <span class="save-toast" id="save-toast">saved</span>
+      <button type="button" class="btn btn-primary" id="btn-print">📄 Save as PDF</button>
+      <button type="button" class="btn btn-primary" id="btn-download-html" style="background:#2d7a3a;border-color:#2d7a3a;">💾 Download HTML</button>
+      <button type="button" class="btn" id="btn-reset">Reset to suggested values</button>
+    </div>
+  </section>
+
+  <!-- ============== SUBSTRATE LANDMARKS ============== -->
+  <section class="section-panel" style="--stat-color:#854f0b;">
+    <h2 class="section-title" style="--stat-color:#854f0b;">Substrate landmarks</h2>
+    <p class="section-subtitle">Where the body shifts between fat and carbohydrate as the dominant fuel.</p>
+    <div class="section-cards">
+      <div class="summary-grid">
+        <div class="stat stat-emphasis" style="--stat-color:#c2410c;">
+          <p class="stat-name">FatMax (FM)</p>
+          <p class="stat-value"><span id="fm-value">120 W</span></p>
+          <p class="stat-relative" id="fm-pct">46% of peak 1-min power (259 W)</p>
+          <div class="stat-input-row">Set to <input type="number" min="60" max="320" step="1" class="stat-input" data-kind="FM"> W
+            <button class="btn-apply" data-kind="FM">Apply</button></div>
+          <p class="stat-note">In this test fat oxidation declines monotonically from 120 W onward, so FatMax sits at or below the leftmost tested step.</p>
+        </div>
+        <div class="stat stat-emphasis" style="--stat-color:#2d7a3a;">
+          <p class="stat-name">CarbMax (CM)</p>
+          <p class="stat-value"><span id="cm-value">124 W</span></p>
+          <p class="stat-relative" id="cm-pct">48% of peak 1-min power (259 W)</p>
+          <div class="stat-input-row">Set to <input type="number" min="60" max="320" step="1" class="stat-input" data-kind="CM"> W
+            <button class="btn-apply" data-kind="CM">Apply</button></div>
+          <p class="stat-note">Power at ~90 g/hr CHO oxidation — typical maximum sustainable carb absorption from external fueling.</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-charts" data-section-grid="substrate"><div class="card">
+        <p class="card-title">Fat oxidation <span class="unit">(g/hr)</span></p>
+        <p class="card-note">last 120 s long / 30 s short</p>
+        <div class="chart-wrap"><canvas id="ch_fat" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">CHO oxidation <span class="unit">(g/hr)</span></p>
+        <p class="card-note">last 120 s long / 30 s short</p>
+        <div class="chart-wrap"><canvas id="ch_cho" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div></div>
+    <div class="notes-area">
+      <label>Notes — substrate</label>
+      <textarea data-notes-key="substrate" placeholder="Fat/CHO trends, fueling implications, what wattage to train fat oxidation at…"></textarea>
+    </div>
+  </section>
+
+  <!-- ============== METABOLIC LANDMARKS ============== -->
+  <section class="section-panel" style="--stat-color:#d4a017;">
+    <h2 class="section-title" style="--stat-color:#d4a017;">Metabolic landmarks</h2>
+    <p class="section-subtitle">Combined fuel-mix transitions and target carb absorption rates.</p>
+    <div class="section-cards">
+      <div class="summary-grid">
+        <div class="stat" style="--stat-color:#d4a017;">
+          <p class="stat-name">Fat / CHO crossover</p>
+          <p class="stat-value">~ 112 W</p>
+          <p class="stat-note">50 / 50 by kcal. At 100 W: 37 % CHO; at 120 W: 58 % CHO. Linear interp.</p>
+        </div>
+      </div>
+    </div>
+    <div class="notes-area">
+      <label>Notes — metabolic</label>
+      <textarea data-notes-key="metabolic" placeholder="Crossover positioning vs threshold, how it informs nutrition strategy…"></textarea>
+    </div>
+  </section>
+
+  <!-- ============== RESPIRATORY LANDMARKS ============== -->
+  <section class="section-panel" style="--stat-color:#185fa5;">
+    <h2 class="section-title" style="--stat-color:#185fa5;">Respiratory landmarks</h2>
+    <p class="section-subtitle">Breathing capacity, ventilation, and breath-economy peaks.</p>
+    <div class="section-cards">
+      <div class="summary-grid">
+        <div class="stat" id="stat-vo2peak" style="--stat-color:#185fa5;">
+          <p class="stat-name">VO₂ peak</p>
+          <p class="stat-value" id="vo2-abs">3.76 L/min</p>
+          <p class="stat-relative" id="vo2-rel">57.1 mL/kg/min @ 65.8 kg</p>
+          <p class="stat-relative" id="vo2-rec">Recovery: 3.03 L/min, 46.1 mL/kg/min  (-19%)</p>
+          <p class="stat-note" id="vo2-note">Highest 15-s avg, occurred ~250 W (t=1769s).</p>
+        </div>
+        <div class="stat" style="--stat-color:#185fa5;">
+          <p class="stat-name">Peak 15-s VE</p>
+          <p class="stat-value" id="peak-ve">128.7 L/min</p>
+          <p class="stat-relative" id="peak-ve-rec">Recovery: 94.1 L/min  (-27%)</p>
+          <p class="stat-note">Highest single 15-s VE in the test.</p>
+        </div>
+        <div class="stat" style="--stat-color:#0f6e56;">
+          <p class="stat-name">Peak 1-min tidal volume</p>
+          <p class="stat-value" id="peak-tv">2485 mL</p>
+          <p class="stat-relative" id="peak-tv-rec">Recovery: 2161 mL  (-13%)</p>
+          <p class="stat-note">Highest rolling 1-min mean of TV across the test.</p>
+        </div>
+        <div class="stat" style="--stat-color:#0f6e56;">
+          <p class="stat-name">Peak 1-min TV / FEV1</p>
+          <p class="stat-value" id="peak-tvpct">68.1 %</p>
+          <p class="stat-relative" id="peak-tvpct-rec">Recovery: 59.2 %  (-13%)</p>
+          <p class="stat-note">FEV1 set to 3.65 L. Typical target range: 75–85 % VC at peak effort.</p>
+        </div>
+        <div class="stat" style="--stat-color:#534ab7;">
+          <p class="stat-name">Peak 15-s breath frequency</p>
+          <p class="stat-value" id="peak-rr">53.1 br/min</p>
+          <p class="stat-relative" id="peak-rr-rec">Recovery: 45.2 br/min  (-15%)</p>
+          <p class="stat-note">Highest single 15-s respiratory rate.</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-charts" data-section-grid="respiratory"><div class="card">
+        <p class="card-title">Tidal volume <span class="unit">(mL)</span></p>
+        <p class="card-note">entire step</p>
+        <div class="chart-wrap"><canvas id="ch_tv" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Tidal volume / 3.65 <span class="unit">(%)</span></p>
+        <p class="card-note">TV (L) / 3.65 × 100</p>
+        <div class="chart-wrap"><canvas id="ch_tvpct" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Ventilation (VE) <span class="unit">(L/min)</span></p>
+        <p class="card-note">last 30 s</p>
+        <div class="chart-wrap"><canvas id="ch_ve" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Respiratory rate <span class="unit">(breaths/min)</span></p>
+        <p class="card-note">last 20 s</p>
+        <div class="chart-wrap"><canvas id="ch_rr" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px; cursor: default;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Watts per breath <span class="unit">(W/breath)</span></p>
+        <p class="card-note">Power ÷ (RR/60). Higher = each breath does more work — relevant for breath-economy assessment.</p>
+        <div class="chart-wrap"><canvas id="ch_wpb" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div></div>
+    <div class="notes-area">
+      <label>Notes — respiratory</label>
+      <textarea data-notes-key="respiratory" placeholder="TV/FEV1 ceiling, breath frequency drift, watts-per-breath efficiency…"></textarea>
+    </div>
+  </section>
+
+  <!-- ============== VENTILATORY THRESHOLDS ============== -->
+  <section class="section-panel" style="--stat-color:#3c3489;">
+    <h2 class="section-title" style="--stat-color:#3c3489;">Ventilatory equivalents</h2>
+    <p class="section-subtitle">VE/VO₂ and VE/VCO₂ — diagnostic curves used to identify VT1 and VT2.</p>
+    <div class="section-charts" data-section-grid="ventilatory"><div class="card">
+        <p class="card-title">VE / VO₂</p>
+        <p class="card-note">entire step</p>
+        <div class="chart-wrap"><canvas id="ch_vevo2" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">VE / VCO₂</p>
+        <p class="card-note">entire step</p>
+        <div class="chart-wrap"><canvas id="ch_vevco2" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div></div>
+    <div class="notes-area">
+      <label>Notes — ventilatory</label>
+      <textarea data-notes-key="ventilatory" placeholder="Where the VE/VO₂ rises without a matched VE/VCO₂ rise (VT1) versus both rising together (VT2)…"></textarea>
+    </div>
+  </section>
+
+  <!-- ============== MUSCLE OXYGEN LANDMARKS ============== -->
+  <section class="section-panel" style="--stat-color:#1f7a3e;">
+    <h2 class="section-title" style="--stat-color:#1f7a3e;">Muscle oxygen landmarks</h2>
+    <p class="section-subtitle">SmO₂ trends per step (NIRS) and hemoglobin partitioning. Bicep + quad placement.</p>
+    <div class="section-charts" data-section-grid="muscleo2"><div class="card">
+        <p class="card-title">Bicep SmO₂ trend per step <span class="unit">(%)</span></p>
+        <p class="card-note">Start → end SmO₂ in the regression window for each step. Tilt = slope direction. Green = re-oxygenating, red = desaturating. 5-min steps skip first 90 s.</p>
+        <div class="chart-wrap"><canvas id="ch_slopeBicep" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Quad SmO₂ trend per step <span class="unit">(%)</span></p>
+        <p class="card-note">Start → end SmO₂ in the regression window for each step. Tilt = slope direction. Green = re-oxygenating, red = desaturating. 5-min steps skip first 90 s.</p>
+        <div class="chart-wrap"><canvas id="ch_slopeQuad" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Bicep O₂Hb / HHb <span class="unit">(a.u.)</span></p>
+        <p class="card-note">O₂Hb (oxy, left axis) and HHb (deoxy, right axis) — same windows as slopes</p>
+        <div class="chart-wrap"><canvas id="ch_hbBicep" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Quad O₂Hb / HHb <span class="unit">(a.u.)</span></p>
+        <p class="card-note">O₂Hb (oxy, left axis) and HHb (deoxy, right axis) — same windows as slopes</p>
+        <div class="chart-wrap"><canvas id="ch_hbQuad" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div></div>
+    <div class="notes-area">
+      <label>Notes — muscle oxygen</label>
+      <textarea data-notes-key="muscleo2" placeholder="Working-muscle desaturation pattern, accessory recruitment, sensor placement notes…"></textarea>
+    </div>
+  </section>
+
+  <!-- ============== CARDIAC ============== -->
+  <section class="section-panel" style="--stat-color:#a32d2d;">
+    <h2 class="section-title" style="--stat-color:#a32d2d;">Cardiac</h2>
+    <p class="section-subtitle">Heart rate response to load and pulse efficiency (watts per heartbeat).</p>
+    <div class="section-cards">
+      <div class="summary-grid">
+        <div class="stat" style="--stat-color:#a32d2d;">
+          <p class="stat-name">Peak 1-s heart rate</p>
+          <p class="stat-value" id="peak-hr">184 bpm</p>
+          <p class="stat-relative" id="peak-hr-rec">Recovery: 168 bpm  (-9%)</p>
+          <p class="stat-note">Highest single 1-s HR anywhere in the recording.</p>
+        </div>
+      </div>
+    </div>
+    <div class="section-charts" data-section-grid="cardiac"><div class="card">
+        <p class="card-title">Heart rate <span class="unit">(bpm)</span></p>
+        <p class="card-note">last 20 s</p>
+        <div class="chart-wrap"><canvas id="ch_hr" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div><div class="card">
+        <p class="card-title">Watts per heartbeat <span class="unit">(W/bpm)</span></p>
+        <p class="card-note">Power ÷ HR. Drift over time at fixed power = cardiac drift / fatigue. Across steps, this normally rises (more force per beat) then plateaus near aerobic ceiling.</p>
+        <div class="chart-wrap"><canvas id="ch_wphr" width="1258" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 629px;"></canvas></div>
+        </div></div>
+    <div class="notes-area">
+      <label>Notes — cardiac</label>
+      <textarea data-notes-key="cardiac" placeholder="HR response curve, pulse-O₂ trends, end-of-step HR at each threshold…"></textarea>
+    </div>
+  </section>
+
+  <!-- Hidden legacy grid (no longer used; kept so existing code references don't blow up) -->
+  <div class="grid" id="grid" style="display:none;"></div>
+
+
+  <!-- ============== RECOVERY TEST SECTION ============== -->
+  <section class="panel recovery-section" style="margin-top:28px;">
+    <h2 style="font-size:18px;font-weight:600;color:var(--text);text-transform:none;letter-spacing:0;margin:0 0 4px;">
+      Recovery test
+    </h2>
+    <p class="subtitle" style="margin:0 0 14px;">
+      Second step test (4 × 5-min steps at 120 / 140 / 160 / 180 W) performed after a recovery period. The cards and charts below show the recovery test alongside the matched-watt initial-test values.
+    </p>
+
+    <h3 class="row-heading">Aerobic capacity peaks (recovery)</h3>
+    <div class="summary-grid">
+      <div class="stat" style="--stat-color:#185fa5;">
+        <p class="stat-name">VO₂ peak (recovery)</p>
+        <p class="stat-value" id="rec2-vo2-abs">3.03 L/min</p>
+        <p class="stat-relative" id="rec2-vo2-rel">46.1 mL/kg/min @ 65.8 kg</p>
+        <p class="stat-relative" id="rec2-vo2-init">Initial: 3.76 L/min  (-19%)</p>
+      </div>
+      <div class="stat" style="--stat-color:#185fa5;">
+        <p class="stat-name">Peak 15-s VE (recovery)</p>
+        <p class="stat-value" id="rec2-peak-ve">94.1 L/min</p>
+        <p class="stat-relative" id="rec2-peak-ve-init">Initial: 128.7 L/min  (-27%)</p>
+      </div>
+      <div class="stat" style="--stat-color:#a32d2d;">
+        <p class="stat-name">Peak 1-s heart rate (recovery)</p>
+        <p class="stat-value" id="rec2-peak-hr">168 bpm</p>
+        <p class="stat-relative" id="rec2-peak-hr-init">Initial: 184 bpm  (-9%)</p>
+      </div>
+    </div>
+
+    <h3 class="row-heading">Breathing peaks (recovery)</h3>
+    <div class="summary-grid">
+      <div class="stat" style="--stat-color:#0f6e56;">
+        <p class="stat-name">Peak 1-min TV (recovery)</p>
+        <p class="stat-value" id="rec2-peak-tv">2161 mL</p>
+        <p class="stat-relative" id="rec2-peak-tv-init">Initial: 2485 mL  (-13%)</p>
+      </div>
+      <div class="stat" style="--stat-color:#0f6e56;">
+        <p class="stat-name">Peak 1-min TV / FEV1 (recovery)</p>
+        <p class="stat-value" id="rec2-peak-tvpct">59.2 %</p>
+        <p class="stat-relative" id="rec2-peak-tvpct-init">Initial: 68.1 %  (-13%)</p>
+      </div>
+      <div class="stat" style="--stat-color:#534ab7;">
+        <p class="stat-name">Peak 15-s breath frequency (recovery)</p>
+        <p class="stat-value" id="rec2-peak-rr">45.2 br/min</p>
+        <p class="stat-relative" id="rec2-peak-rr-init">Initial: 53.1 br/min  (-15%)</p>
+      </div>
+    </div>
+
+    <h3 class="row-heading">Performance peaks (recovery)</h3>
+    <div class="summary-grid">
+      <div class="stat" style="--stat-color:#1f5dac;">
+        <p class="stat-name">Peak 1-min power (recovery)</p>
+        <p class="stat-value" id="rec2-peak-power">179 W</p>
+        <p class="stat-relative" id="rec2-peak-power-init">Initial: 258.9 W  (-31%)</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid" id="grid-recovery" style="margin-top:14px;"><div class="card">
+        <p class="card-title">Tidal volume <span class="unit">(mL)</span></p>
+        <p class="card-note">entire step</p>
+        <div class="chart-wrap"><canvas id="rec_ch_tv" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_tv"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">2054<span style="color:var(--text-faint);"> → </span>2055</span>
+                <span class="rec-delta-flat">+0%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">2196<span style="color:var(--text-faint);"> → </span>1991</span>
+                <span class="rec-delta">-9%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">2294<span style="color:var(--text-faint);"> → </span>2005</span>
+                <span class="rec-delta">-13%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">2369<span style="color:var(--text-faint);"> → </span>2064</span>
+                <span class="rec-delta">-13%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">Tidal volume / 3.65 <span class="unit">(%)</span></p>
+        <p class="card-note">TV (L) / 3.65 × 100</p>
+        <div class="chart-wrap"><canvas id="rec_ch_tvpct" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_tvpct"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">56.3<span style="color:var(--text-faint);"> → </span>56.3</span>
+                <span class="rec-delta-flat">0%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">60.2<span style="color:var(--text-faint);"> → </span>54.5</span>
+                <span class="rec-delta">-9%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">62.8<span style="color:var(--text-faint);"> → </span>54.9</span>
+                <span class="rec-delta">-13%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">64.9<span style="color:var(--text-faint);"> → </span>56.5</span>
+                <span class="rec-delta">-13%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">Ventilation (VE) <span class="unit">(L/min)</span></p>
+        <p class="card-note">last 30 s</p>
+        <div class="chart-wrap"><canvas id="rec_ch_ve" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_ve"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">42.7<span style="color:var(--text-faint);"> → </span>66.2</span>
+                <span class="rec-delta">+55%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">57.3<span style="color:var(--text-faint);"> → </span>70.4</span>
+                <span class="rec-delta">+23%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">63.7<span style="color:var(--text-faint);"> → </span>79.5</span>
+                <span class="rec-delta">+25%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">71.9<span style="color:var(--text-faint);"> → </span>86.3</span>
+                <span class="rec-delta">+20%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">Respiratory rate <span class="unit">(breaths/min)</span></p>
+        <p class="card-note">last 20 s</p>
+        <div class="chart-wrap"><canvas id="rec_ch_rr" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_rr"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">21.5<span style="color:var(--text-faint);"> → </span>33.6</span>
+                <span class="rec-delta">+56%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">26.1<span style="color:var(--text-faint);"> → </span>35.9</span>
+                <span class="rec-delta">+38%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">28.9<span style="color:var(--text-faint);"> → </span>39.4</span>
+                <span class="rec-delta">+36%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">30.5<span style="color:var(--text-faint);"> → </span>42.9</span>
+                <span class="rec-delta">+41%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">Fat oxidation <span class="unit">(g/hr)</span></p>
+        <p class="card-note">last 120 s long / 30 s short</p>
+        <div class="chart-wrap"><canvas id="rec_ch_fat" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_fat"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">25.4<span style="color:var(--text-faint);"> → </span>19.4</span>
+                <span class="rec-delta">-24%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">22.2<span style="color:var(--text-faint);"> → </span>8.7</span>
+                <span class="rec-delta">-61%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">17.9<span style="color:var(--text-faint);"> → </span>2.1</span>
+                <span class="rec-delta">-88%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">7.8<span style="color:var(--text-faint);"> → </span>0.0</span>
+                <span class="rec-delta">-100%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">CHO oxidation <span class="unit">(g/hr)</span></p>
+        <p class="card-note">last 120 s long / 30 s short</p>
+        <div class="chart-wrap"><canvas id="rec_ch_cho" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_cho"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">83.8<span style="color:var(--text-faint);"> → </span>80.7</span>
+                <span class="rec-delta">-4%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">116.6<span style="color:var(--text-faint);"> → </span>91.3</span>
+                <span class="rec-delta">-22%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">147.7<span style="color:var(--text-faint);"> → </span>97.9</span>
+                <span class="rec-delta">-34%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">179.4<span style="color:var(--text-faint);"> → </span>100.0</span>
+                <span class="rec-delta">-44%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">VE / VO₂</p>
+        <p class="card-note">entire step</p>
+        <div class="chart-wrap"><canvas id="rec_ch_vevo2" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_vevo2"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">23.1<span style="color:var(--text-faint);"> → </span>34.3</span>
+                <span class="rec-delta">+48%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">23.6<span style="color:var(--text-faint);"> → </span>31.2</span>
+                <span class="rec-delta">+32%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">25.1<span style="color:var(--text-faint);"> → </span>31.3</span>
+                <span class="rec-delta">+25%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">26.3<span style="color:var(--text-faint);"> → </span>31.9</span>
+                <span class="rec-delta">+22%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">VE / VCO₂</p>
+        <p class="card-note">entire step</p>
+        <div class="chart-wrap"><canvas id="rec_ch_vevco2" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_vevco2"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">27.0<span style="color:var(--text-faint);"> → </span>34.0</span>
+                <span class="rec-delta">+26%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">26.6<span style="color:var(--text-faint);"> → </span>33.0</span>
+                <span class="rec-delta">+24%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">27.1<span style="color:var(--text-faint);"> → </span>31.7</span>
+                <span class="rec-delta">+17%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">27.5<span style="color:var(--text-faint);"> → </span>30.8</span>
+                <span class="rec-delta">+12%</span>
+              </div></div></div></div><div class="card">
+        <p class="card-title">Heart rate <span class="unit">(bpm)</span></p>
+        <p class="card-note">last 20 s</p>
+        <div class="chart-wrap"><canvas id="rec_ch_hr" width="1300" height="640" style="display: block; box-sizing: border-box; height: 320px; width: 650px;"></canvas></div>
+        <div class="recovery-strip" id="recstrip_hr"><div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid"><div class="rec-row">
+                <span class="rec-w">120 W</span>
+                <span class="rec-vals">114<span style="color:var(--text-faint);"> → </span>137</span>
+                <span class="rec-delta">+20%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">140 W</span>
+                <span class="rec-vals">125<span style="color:var(--text-faint);"> → </span>150</span>
+                <span class="rec-delta">+20%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">160 W</span>
+                <span class="rec-vals">139<span style="color:var(--text-faint);"> → </span>155</span>
+                <span class="rec-delta">+12%</span>
+              </div><div class="rec-row">
+                <span class="rec-w">180 W</span>
+                <span class="rec-vals">151<span style="color:var(--text-faint);"> → </span>164</span>
+                <span class="rec-delta">+9%</span>
+              </div></div></div></div></div>
+
+  <footer>
+    NIRS: bicep = SmO₂ channel 1 (higher values, ~64% → ~19%); quad = SmO₂ channel 2 (lower, ~35% → ~17%). Slopes are linear regression % per second. Long-step slopes skip the first 90 s; short-step slopes use the entire 60 s. O₂Hb (oxygenated) and HHb (deoxygenated) computed each second from SmO₂ × THb, then averaged. Tidal volume / 3.65 interprets 3.65 as vital capacity (L); plotted as TV(L) / 3.65 × 100%.
+  </footer>
+
+</div>
+
+<div id="click-popover" class="click-popover" role="dialog">
+  <div class="popover-header">Set <strong id="popover-w">— W</strong> as:</div>
+  <div class="popover-buttons" id="popover-buttons"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script>
+// =========================================================================
+// TEST_DATA — everything specific to this athlete and this test session.
+// To use the same shell for a different athlete, replace this block only.
+// =========================================================================
+const TEST_DATA = {
+  "defaultTestId": "chay-genoway-2026-04-29",
+  "athleteDefaults": {
+    "name": "Chay Genoway",
+    "height_cm": 175,
+    "weight_kg": 65.8,
+    "testDate": "2026-04-28"
+  },
+  "notesDefaults": {
+    "performance": "Performance landmarks are important points throughout the test that we can identify for future testing and compare.  ",
+    "substrate": "One current goal would be to get FatMax wattage up to 70% of your peak 1 minute power, or around 190 watts.  In order to improve this, moving the needle would be 70% off the bike nutrition, 30% training program.",
+    "metabolic": "A great goal for improving this aspect of your metabolism is getting the crossover point to be above your VT1, and ideally near your Balance Point (BP).  ",
+    "respiratory": "Biggest improvment to look for here, get the % of your Tidal Volume relative to your FEV1 sprimetry test in the 75-85% range.  You have a good score here getting close to 70%, but trying to breathe slower and deeper can really help improve this score.  Slower breathing will the efficiency of the system, require less energy of the breathing muscles, which can then be used to pedal the bike!  We can go over this more during the consult.",
+    "ventilatory": "",
+    "muscleo2": "",
+    "cardiac": ""
+  },
+  "vo2_peak": {
+    "ml_min": 3758,
+    "occurred_at_W": 250,
+    "occurred_at_t_s": 1769
+  },
+  "peaks": {
+    "tv_1m_mL": 2485,
+    "tvpct_1m_pct": 68.1,
+    "ve_15s_Lmin": 128.7,
+    "rr_15s_brmin": 53.1,
+    "hr_1s_bpm": 184,
+    "power_1m_W": 258.9
+  },
+  "recovery": {
+    "label": "Recovery test",
+    "power": [
+      119.3,
+      139.2,
+      159.5,
+      179.2
+    ],
+    "kind": [
+      "long",
+      "long",
+      "long",
+      "long"
+    ],
+    "vo2_peak": {
+      "ml_min": 3032,
+      "occurred_at_W": 180,
+      "occurred_at_t_s": 2924
+    },
+    "peaks": {
+      "tv_1m_mL": 2161,
+      "tvpct_1m_pct": 59.2,
+      "ve_15s_Lmin": 94.1,
+      "rr_15s_brmin": 45.2,
+      "hr_1s_bpm": 168,
+      "power_1m_W": 179.3
+    },
+    "metrics": {
+      "tv": [
+        2055,
+        1991,
+        2005,
+        2064
+      ],
+      "tvpct": [
+        56.3,
+        54.5,
+        54.9,
+        56.5
+      ],
+      "fat": [
+        19.4,
+        8.7,
+        2.1,
+        0
+      ],
+      "cho": [
+        80.7,
+        91.3,
+        97.9,
+        100
+      ],
+      "ve": [
+        66.2,
+        70.4,
+        79.5,
+        86.3
+      ],
+      "rr": [
+        33.6,
+        35.9,
+        39.4,
+        42.9
+      ],
+      "vevo2": [
+        34.29,
+        31.16,
+        31.25,
+        31.94
+      ],
+      "vevco2": [
+        34.01,
+        33.04,
+        31.66,
+        30.78
+      ],
+      "hr": [
+        137,
+        150,
+        155,
+        164
+      ]
+    }
+  },
+  "power": [
+    119.4,
+    139.2,
+    159.5,
+    169.8,
+    179.5,
+    189.5,
+    199.7,
+    209.5,
+    220,
+    230,
+    239.8,
+    249.8,
+    258
+  ],
+  "kind": [
+    "long",
+    "long",
+    "long",
+    "short",
+    "short",
+    "short",
+    "short",
+    "short",
+    "short",
+    "short",
+    "short",
+    "short",
+    "short"
+  ],
+  "thresholdDefaults": {
+    "FM": 120,
+    "CM": 124,
+    "VT1": 170,
+    "BP": 190,
+    "VT2": 220
+  },
+  "metrics": [
+    {
+      "id": "tv",
+      "title": "Tidal volume",
+      "unit": "mL",
+      "note": "entire step",
+      "section": "respiratory",
+      "color": "#0f6e56",
+      "fmtKind": "int",
+      "data": [
+        2054,
+        2196,
+        2294,
+        2194,
+        2369,
+        2385,
+        2485,
+        2389,
+        2420,
+        2466,
+        2441,
+        2432,
+        2417
+      ],
+      "markers": []
+    },
+    {
+      "id": "tvpct",
+      "title": "Tidal volume / 3.65",
+      "unit": "%",
+      "note": "TV (L) / 3.65 × 100",
+      "section": "respiratory",
+      "color": "#0f6e56",
+      "fmtKind": "1",
+      "labelAlign": "top",
+      "recLabelAlign": "top",
+      "data": [
+        56.3,
+        60.2,
+        62.8,
+        60.1,
+        64.9,
+        65.3,
+        68.1,
+        65.4,
+        66.3,
+        67.6,
+        66.9,
+        66.6,
+        66.2
+      ],
+      "markers": []
+    },
+    {
+      "id": "ve",
+      "title": "Ventilation (VE)",
+      "unit": "L/min",
+      "note": "last 30 s",
+      "section": "respiratory",
+      "color": "#185fa5",
+      "fmtKind": "1",
+      "recLabelAlign": "top",
+      "data": [
+        42.7,
+        57.3,
+        63.7,
+        67.4,
+        71.9,
+        73.4,
+        82.1,
+        85.3,
+        87.4,
+        100.7,
+        108,
+        120.4,
+        128.1
+      ],
+      "markers": [
+        "VT1",
+        "BP",
+        "VT2"
+      ]
+    },
+    {
+      "id": "rr",
+      "title": "Respiratory rate",
+      "unit": "breaths/min",
+      "note": "last 20 s",
+      "section": "respiratory",
+      "color": "#534ab7",
+      "fmtKind": "1",
+      "recLabelAlign": "top",
+      "data": [
+        21.5,
+        26.1,
+        28.9,
+        29.2,
+        30.5,
+        31.7,
+        33,
+        35.2,
+        36.4,
+        41.6,
+        44.9,
+        52.1,
+        53
+      ],
+      "markers": [
+        "VT1",
+        "BP",
+        "VT2"
+      ]
+    },
+    {
+      "id": "wpb",
+      "title": "Watts per breath",
+      "unit": "W/breath",
+      "note": "Power ÷ (RR/60). Higher = each breath does more work — relevant for breath-economy assessment.",
+      "section": "respiratory",
+      "color": "#0f6e56",
+      "fmtKind": "int",
+      "data": [
+        333,
+        320,
+        331,
+        349,
+        353,
+        359,
+        363,
+        357,
+        363,
+        332,
+        320,
+        288,
+        292
+      ],
+      "markers": [
+        "VT1",
+        "BP",
+        "VT2"
+      ]
+    },
+    {
+      "id": "fat",
+      "title": "Fat oxidation",
+      "unit": "g/hr",
+      "note": "last 120 s long / 30 s short",
+      "section": "substrate",
+      "color": "#854f0b",
+      "fmtKind": "1",
+      "recLabelAlign": "top",
+      "data": [
+        25.4,
+        22.2,
+        17.9,
+        18.6,
+        7.8,
+        11.8,
+        7.1,
+        0,
+        2.2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "markers": [
+        "CROSSOVER"
+      ]
+    },
+    {
+      "id": "cho",
+      "title": "CHO oxidation",
+      "unit": "g/hr",
+      "note": "last 120 s long / 30 s short",
+      "section": "substrate",
+      "color": "#3b6d11",
+      "fmtKind": "1",
+      "data": [
+        83.8,
+        116.6,
+        147.7,
+        152.2,
+        179.4,
+        179.4,
+        210.4,
+        234.4,
+        244.2,
+        289.4,
+        321.2,
+        346.2,
+        361.9
+      ],
+      "markers": [
+        "CROSSOVER"
+      ]
+    },
+    {
+      "id": "vevo2",
+      "title": "VE / VO₂",
+      "unit": "",
+      "note": "entire step",
+      "section": "ventilatory",
+      "color": "#3c3489",
+      "fmtKind": "1",
+      "data": [
+        23.14,
+        23.65,
+        25.1,
+        25.34,
+        26.26,
+        26.1,
+        26.58,
+        28.11,
+        28.44,
+        29.64,
+        30.84,
+        33.11,
+        34.66
+      ],
+      "markers": [
+        "VT1",
+        "BP",
+        "VT2"
+      ]
+    },
+    {
+      "id": "vevco2",
+      "title": "VE / VCO₂",
+      "unit": "",
+      "note": "entire step",
+      "section": "ventilatory",
+      "color": "#993556",
+      "fmtKind": "1",
+      "data": [
+        26.96,
+        26.56,
+        27.11,
+        27.36,
+        27.54,
+        27.22,
+        27.29,
+        28.01,
+        28.01,
+        28.63,
+        29.13,
+        30.75,
+        31.55
+      ],
+      "markers": [
+        "VT1",
+        "BP",
+        "VT2"
+      ]
+    },
+    {
+      "id": "slopeBicep",
+      "title": "Bicep SmO₂ trend per step",
+      "unit": "%",
+      "section": "muscleo2",
+      "note": "Start → end SmO₂ in the regression window for each step. Tilt = slope direction. Green = re-oxygenating, red = desaturating. 5-min steps skip first 90 s.",
+      "stepSegments": true,
+      "fmtKind": "1",
+      "startVals": [
+        68.4,
+        58.8,
+        61.4,
+        57.1,
+        58.2,
+        57.2,
+        56.6,
+        46.8,
+        47.1,
+        33.9,
+        37,
+        25.7,
+        23.5
+      ],
+      "endVals": [
+        59,
+        58.9,
+        53.7,
+        58.1,
+        57.8,
+        56.3,
+        48.5,
+        49.6,
+        39.4,
+        31.5,
+        26.3,
+        24.8,
+        14.3
+      ],
+      "markers": []
+    },
+    {
+      "id": "slopeQuad",
+      "title": "Quad SmO₂ trend per step",
+      "unit": "%",
+      "section": "muscleo2",
+      "note": "Start → end SmO₂ in the regression window for each step. Tilt = slope direction. Green = re-oxygenating, red = desaturating. 5-min steps skip first 90 s.",
+      "stepSegments": true,
+      "fmtKind": "1",
+      "startVals": [
+        36.6,
+        30.4,
+        22.6,
+        23.6,
+        23.2,
+        21.8,
+        21.3,
+        18.6,
+        18.9,
+        18.1,
+        18.1,
+        17,
+        17.2
+      ],
+      "endVals": [
+        32,
+        24.8,
+        24.3,
+        23.9,
+        20.2,
+        20,
+        19.6,
+        18.3,
+        17.9,
+        16.7,
+        18,
+        18.9,
+        16.8
+      ],
+      "markers": []
+    },
+    {
+      "id": "hbBicep",
+      "title": "Bicep O₂Hb / HHb",
+      "unit": "a.u.",
+      "section": "muscleo2",
+      "note": "O₂Hb (oxy, left axis) and HHb (deoxy, right axis) — same windows as slopes",
+      "multi": true,
+      "dualAxis": true,
+      "fmtKind": "2",
+      "series": [
+        {
+          "label": "O₂Hb (oxy)",
+          "color": "#c43c3c",
+          "yAxisID": "yLeft",
+          "data": [
+            7.969,
+            7.382,
+            7.236,
+            7.247,
+            7.3,
+            7.14,
+            6.613,
+            6.078,
+            5.457,
+            4.151,
+            3.997,
+            3.215,
+            2.42
+          ]
+        },
+        {
+          "label": "HHb (deoxy)",
+          "color": "#1f5dac",
+          "yAxisID": "yRight",
+          "data": [
+            4.543,
+            5.151,
+            5.341,
+            5.331,
+            5.289,
+            5.438,
+            5.994,
+            6.524,
+            7.202,
+            8.52,
+            8.68,
+            9.529,
+            10.386
+          ]
+        }
+      ],
+      "markers": []
+    },
+    {
+      "id": "hbQuad",
+      "title": "Quad O₂Hb / HHb",
+      "unit": "a.u.",
+      "section": "muscleo2",
+      "note": "O₂Hb (oxy, left axis) and HHb (deoxy, right axis) — same windows as slopes",
+      "multi": true,
+      "dualAxis": true,
+      "fmtKind": "2",
+      "series": [
+        {
+          "label": "O₂Hb (oxy)",
+          "color": "#c43c3c",
+          "yAxisID": "yLeft",
+          "data": [
+            4.5,
+            3.63,
+            3.089,
+            3.133,
+            2.87,
+            2.756,
+            2.694,
+            2.433,
+            2.429,
+            2.288,
+            2.381,
+            2.367,
+            2.239
+          ]
+        },
+        {
+          "label": "HHb (deoxy)",
+          "color": "#1f5dac",
+          "yAxisID": "yRight",
+          "data": [
+            8.627,
+            9.524,
+            10.081,
+            10.043,
+            10.31,
+            10.424,
+            10.492,
+            10.756,
+            10.762,
+            10.901,
+            10.809,
+            10.819,
+            10.94
+          ]
+        }
+      ],
+      "markers": []
+    },
+    {
+      "id": "hr",
+      "title": "Heart rate",
+      "unit": "bpm",
+      "note": "last 20 s",
+      "section": "cardiac",
+      "color": "#a32d2d",
+      "fmtKind": "int",
+      "recLabelAlign": "top",
+      "data": [
+        114,
+        125,
+        139,
+        146,
+        151,
+        156,
+        160,
+        165,
+        168,
+        173,
+        179,
+        181,
+        182
+      ],
+      "markers": [
+        "VT1",
+        "BP",
+        "VT2"
+      ]
+    },
+    {
+      "id": "wphr",
+      "title": "Watts per heartbeat",
+      "unit": "W/bpm",
+      "note": "Power ÷ HR. Drift over time at fixed power = cardiac drift / fatigue. Across steps, this normally rises (more force per beat) then plateaus near aerobic ceiling.",
+      "section": "cardiac",
+      "color": "#a32d2d",
+      "fmtKind": "2",
+      "data": [
+        1.05,
+        1.11,
+        1.15,
+        1.16,
+        1.19,
+        1.21,
+        1.25,
+        1.27,
+        1.31,
+        1.33,
+        1.34,
+        1.38,
+        1.42
+      ],
+      "markers": [
+        "VT1",
+        "BP",
+        "VT2"
+      ]
+    }
+  ]
+};
+
+// =========================================================================
+// SHELL — generic across athletes. Reads only from TEST_DATA.
+// =========================================================================
+function bootstrapDashboard() {
+  console.info('%c[Metabolic test build 2026-04-29-fix20] dashboard bootstrapping…', 'color:#2e7ab7;font-weight:bold');
+  // Defensive: verify Chart.js loaded
+  if (typeof Chart === 'undefined') {
+    showFatalError('Chart.js failed to load. Check your network connection or ensure the page can reach https://cdnjs.cloudflare.com');
+    return;
+  }
+  if (typeof ChartDataLabels === 'undefined') {
+    showFatalError('chartjs-plugin-datalabels failed to load. Check your network connection.');
+    return;
+  }
+  try {
+    runDashboard();
+  } catch (err) {
+    console.error('Dashboard init error:', err);
+    showFatalError('Dashboard error: ' + err.message + ' (check browser console for full stack)');
+  }
+}
+function showFatalError(msg) {
+  const grid = document.getElementById('grid');
+  if (grid) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:24px;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;color:#991b1b;font-size:14px;">⚠️ ' + msg + '</div>';
+  }
+}
+
+function runDashboard() {
+  Chart.register(ChartDataLabels);
+
+  const KINDS_DRAGGABLE = ['FM', 'CM', 'VT1', 'BP', 'VT2'];
+  const KIND_COLORS = { FM:'#c2410c', CM:'#2d7a3a', VT1:'#2e7ab7', BP:'#7c3aed', VT2:'#c43c3c' };
+  const KIND_ROW    = { FM:0, CM:0, VT1:0, BP:1, VT2:2 };
+  const STATIC_MARKERS = {
+    CROSSOVER: { x: 112, color: '#d4a017', label: 'Crossover ~112 W' },
+    CARB90:    { x: 124, color: '#2d7a3a', label: '90 g/hr ~124 W' }
+  };
+  const STATIC_HLINE_COLOR = { CARB90: '#2d7a3a' };
+  const X_MIN = 60, X_MAX = 320;
+
+  const FMT = {
+    int: (v) => Math.round(v).toString(),
+    '1': (v) => v.toFixed(1),
+    '2': (v) => v.toFixed(2),
+    '3': (v) => v.toFixed(3),
+  };
+
+
+  const power = TEST_DATA.power;
+  const kind  = TEST_DATA.kind;
+  const metrics = TEST_DATA.metrics;
+  const T_DEFAULTS = Object.assign({}, TEST_DATA.thresholdDefaults);
+
+  // ---------- Storage: in-memory state, hydrated from localStorage at startup ----------
+  // Single source of truth is `state`. localStorage is best-effort persistence — if it
+  // fails (file:// origin, private mode, blocked storage, etc) the live session still works.
+  const STORAGE_KEY = 'metabolic_tests_v2';
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch (e) { state = {}; }
+  function persistState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* fail silent */ }
+  }
+
+  let currentTestId = TEST_DATA.defaultTestId;
+  function ensureStore() {
+    if (!state[currentTestId]) state[currentTestId] = { athlete: {}, thresholds: {} };
+    if (!state[currentTestId].athlete) state[currentTestId].athlete = {};
+    if (!state[currentTestId].thresholds) state[currentTestId].thresholds = {};
+    return state[currentTestId];
+  }
+  function getMarkerX(metricId, kindStr) {
+    const store = ensureStore();
+    const o = store.thresholds[metricId];
+    if (o && typeof o[kindStr] === 'number') return o[kindStr];
+    return T_DEFAULTS[kindStr];
+  }
+  function getGlobal(kindStr) {
+    const store = ensureStore();
+    const o = store.thresholds.__global;
+    if (o && typeof o[kindStr] === 'number') return o[kindStr];
+    return T_DEFAULTS[kindStr];
+  }
+  function setGlobal(kindStr, x) {
+    const store = ensureStore();
+    if (!store.thresholds.__global) store.thresholds.__global = {};
+    store.thresholds.__global[kindStr] = Math.max(X_MIN, Math.min(X_MAX, Math.round(x)));
+    persistState();
+  }
+  function setMarkerX(metricId, kindStr, x, opts) {
+    opts = opts || {};
+    const store = ensureStore();
+    if (!store.thresholds[metricId]) store.thresholds[metricId] = {};
+    let v = Math.max(X_MIN, Math.min(X_MAX, Math.round(x)));
+
+    const has = (k) => metricKinds[metricId] && metricKinds[metricId].has(k);
+    const hasBP = has('BP');
+
+    if (hasBP) {
+      if (kindStr === 'VT1') {
+        const vt2 = getMarkerX(metricId, 'VT2');
+        v = Math.min(v, vt2 - 2);
+      } else if (kindStr === 'VT2') {
+        const vt1 = getMarkerX(metricId, 'VT1');
+        v = Math.max(v, vt1 + 2);
+      } else if (kindStr === 'BP') {
+        const vt1 = getMarkerX(metricId, 'VT1');
+        const vt2 = getMarkerX(metricId, 'VT2');
+        v = Math.max(vt1 + 1, Math.min(vt2 - 1, v));
+      }
+    }
+    store.thresholds[metricId][kindStr] = v;
+
+    if (hasBP && (kindStr === 'VT1' || kindStr === 'VT2')) {
+      const vt1 = getMarkerX(metricId, 'VT1');
+      const vt2 = getMarkerX(metricId, 'VT2');
+      const bp = getMarkerX(metricId, 'BP');
+      const newBp = Math.max(vt1 + 1, Math.min(vt2 - 1, bp));
+      if (newBp !== bp) store.thresholds[metricId].BP = newBp;
+    }
+    persistState();
+    if (!opts.silent) flashSaveToast();
+  }
+  function setMarkerForAllCharts(kindStr, value) {
+    try {
+      const eligibleCharts = chartRegistry.filter(({ kinds }) => kinds.includes(kindStr));
+      console.log('[Apply]', kindStr, '->', value, '| eligible charts:', eligibleCharts.length);
+      if (eligibleCharts.length === 0) {
+        setGlobal(kindStr, value);
+      } else {
+        eligibleCharts.forEach(({ metricId }) => {
+          setMarkerX(metricId, kindStr, value, { silent: true });
+        });
+        setGlobal(kindStr, value);
+      }
+      flashSaveToast();
+      chartRegistry.forEach(({ chart }) => { try { chart.update('none'); } catch (e) { console.warn('chart.update failed:', e.message); } });
+      console.log('[Apply] calling updateSummary…');
+      updateSummary();
+      const displayedAfter = document.getElementById(kindStr.toLowerCase() + '-value')?.textContent || '?';
+      console.log('[Apply] done. ' + kindStr + ' displayed now =', displayedAfter);
+      const diagEl = document.getElementById('diag-text');
+      if (diagEl) {
+        diagEl.textContent = `Apply ${kindStr}=${value} → eligible charts: ${eligibleCharts.length}, displayed value: ${displayedAfter} ${displayedAfter === Math.round(value) + ' W' ? '✓ matched' : '✗ MISMATCH'}`;
+      }
+    } catch (err) {
+      console.error('[Apply] FAILED:', err);
+      const dbg = document.getElementById('apply-debug');
+      if (dbg) {
+        dbg.textContent = '⚠️ Apply error: ' + err.message + ' (line ' + (err.lineNumber || '?') + ')';
+        dbg.style.display = 'block';
+      }
+    }
+  }
+  function resetAllOverrides() {
+    const store = ensureStore();
+    store.thresholds = {};
+    persistState();
+  }
+  function getAthlete() {
+    const store = ensureStore();
+    return Object.assign({}, TEST_DATA.athleteDefaults, store.athlete || {});
+  }
+  function setAthleteField(field, value) {
+    const store = ensureStore();
+    store.athlete[field] = value;
+    persistState();
+  }
+
+  function flashSaveToast() {
+    const t = document.getElementById('save-toast');
+    if (!t) return;
+    t.classList.add('visible');
+    if (t._timer) clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('visible'), 1100);
+  }
+
+  // ---------- Geometry helpers ----------
+  function pxToWatts(chart, px) {
+    const xScale = chart.scales.x;
+    if (xScale.type === 'linear') return xScale.getValueForPixel(px);
+    const labels = chart.data.labels || [];
+    if (!labels.length) return null;
+    const centers = labels.map((_, i) => xScale.getPixelForValue(i));
+    if (px <= centers[0]) {
+      const span = centers[1] - centers[0];
+      const wSpan = parseFloat(labels[1]) - parseFloat(labels[0]);
+      return parseFloat(labels[0]) + (px - centers[0]) / span * wSpan;
+    }
+    if (px >= centers[centers.length - 1]) {
+      const n = centers.length;
+      const span = centers[n-1] - centers[n-2];
+      const wSpan = parseFloat(labels[n-1]) - parseFloat(labels[n-2]);
+      return parseFloat(labels[n-1]) + (px - centers[n-1]) / span * wSpan;
+    }
+    for (let i = 0; i < centers.length - 1; i++) {
+      if (px >= centers[i] && px <= centers[i+1]) {
+        const frac = (px - centers[i]) / (centers[i+1] - centers[i]);
+        return parseFloat(labels[i]) + frac * (parseFloat(labels[i+1]) - parseFloat(labels[i]));
+      }
+    }
+    return null;
+  }
+  function wattsToPx(chart, w) {
+    const xScale = chart.scales.x;
+    if (xScale.type === 'linear') return xScale.getPixelForValue(w);
+    const labels = chart.data.labels || [];
+    let leftIdx = -1;
+    for (let i = 0; i < labels.length; i++) if (parseFloat(labels[i]) <= w) leftIdx = i;
+    if (leftIdx < 0) leftIdx = 0;
+    if (leftIdx >= labels.length - 1) {
+      const n = labels.length;
+      const xLeft  = parseFloat(labels[n-2]);
+      const xRight = parseFloat(labels[n-1]);
+      const pxL = xScale.getPixelForValue(n-2);
+      const pxR = xScale.getPixelForValue(n-1);
+      return pxL + (w - xLeft) / (xRight - xLeft) * (pxR - pxL);
+    }
+    const xLeft  = parseFloat(labels[leftIdx]);
+    const xRight = parseFloat(labels[leftIdx + 1]);
+    const frac = (w - xLeft) / (xRight - xLeft);
+    const pxL = xScale.getPixelForValue(leftIdx);
+    const pxR = xScale.getPixelForValue(leftIdx + 1);
+    return pxL + (pxR - pxL) * frac;
+  }
+
+  // ---------- Plugins ----------
+  const goalBandPlugin = {
+    id: 'goalBand',
+    beforeDatasetsDraw(chart, _, opts) {
+      if (!opts || opts.from == null || opts.to == null) return;
+      const { ctx, chartArea: ca, scales: { y } } = chart;
+      const yTop    = y.getPixelForValue(opts.to);
+      const yBottom = y.getPixelForValue(opts.from);
+      ctx.save();
+      ctx.fillStyle = opts.color || 'rgba(220, 50, 50, 0.10)';
+      ctx.fillRect(ca.left, yTop, ca.right - ca.left, yBottom - yTop);
+      ctx.strokeStyle = opts.edge || 'rgba(220, 50, 50, 0.45)';
+      ctx.setLineDash([4, 3]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ca.left, yTop);    ctx.lineTo(ca.right, yTop);    ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ca.left, yBottom); ctx.lineTo(ca.right, yBottom); ctx.stroke();
+      ctx.setLineDash([]);
+      if (opts.label) {
+        ctx.fillStyle = opts.edge || 'rgba(220, 50, 50, 0.85)';
+        ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = 'top'; ctx.textAlign = 'right';
+        ctx.fillText(opts.label, ca.right - 6, yTop + 3);
+      }
+      ctx.restore();
+    }
+  };
+  Chart.register(goalBandPlugin);
+
+  const zeroLinePlugin = {
+    id: 'zeroLine',
+    beforeDatasetsDraw(chart, _, opts) {
+      if (!opts || !opts.show) return;
+      const { ctx, chartArea: ca, scales: { y } } = chart;
+      if (!y) return;
+      const yPx = y.getPixelForValue(0);
+      if (yPx < ca.top || yPx > ca.bottom) return;
+      ctx.save();
+      ctx.strokeStyle = opts.color || 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(ca.left, yPx); ctx.lineTo(ca.right, yPx); ctx.stroke();
+      ctx.restore();
+    }
+  };
+  Chart.register(zeroLinePlugin);
+
+  const markersPlugin = {
+    id: 'markers',
+    afterDatasetsDraw(chart, _, opts) {
+      if (!opts) return;
+      const { ctx, chartArea: ca, scales } = chart;
+      const lines = opts.lines || [];
+      const activeKind = chart._activeMarkerKind || null;
+
+      lines.forEach(ln => {
+        const isDraggable = KINDS_DRAGGABLE.includes(ln.kind);
+        const liveX = isDraggable ? getMarkerX(opts.metricId, ln.kind) : ln.x;
+        const xPx = wattsToPx(chart, liveX);
+        if (xPx == null || xPx < ca.left - 1 || xPx > ca.right + 1) return;
+        const isActive = isDraggable && ln.kind === activeKind;
+
+        ctx.save();
+        ctx.strokeStyle = ln.color || 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = isActive ? 2.4 : 1.4;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(xPx, ca.top); ctx.lineTo(xPx, ca.bottom); ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (isDraggable) {
+          const row = KIND_ROW[ln.kind] || 0;
+          const tabH = 12, tabW = 9;
+          const tabY = ca.top + 18 + row * 13;
+          ctx.fillStyle = ln.color;
+          ctx.beginPath();
+          ctx.moveTo(xPx - tabW/2, tabY);
+          ctx.lineTo(xPx + tabW/2, tabY);
+          ctx.lineTo(xPx + tabW/2, tabY + tabH - 3);
+          ctx.lineTo(xPx, tabY + tabH);
+          ctx.lineTo(xPx - tabW/2, tabY + tabH - 3);
+          ctx.closePath(); ctx.fill();
+        }
+
+        const labelText = isDraggable ? `${ln.kind} ${Math.round(liveX)} W` : ln.label;
+        if (labelText) {
+          const row = isDraggable ? (KIND_ROW[ln.kind] || 0) : 0;
+          const labelY = ca.top + 3 + row * 13;
+          ctx.fillStyle = ln.color || 'rgba(0,0,0,0.7)';
+          ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
+          ctx.textBaseline = 'top';
+          const nearRight = (xPx > ca.right - 70);
+          ctx.textAlign = nearRight ? 'right' : 'left';
+          const offset = nearRight ? -4 : 4;
+          ctx.fillText(labelText, xPx + offset, labelY);
+        }
+        ctx.restore();
+      });
+
+      if (opts.hLines && opts.hLines.length) {
+        const yScale = scales.y || scales.yLeft;
+        opts.hLines.forEach(ln => {
+          const yPx = yScale.getPixelForValue(ln.y);
+          if (yPx < ca.top || yPx > ca.bottom) return;
+          ctx.save();
+          ctx.strokeStyle = ln.color || 'rgba(0,0,0,0.5)';
+          ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
+          ctx.beginPath(); ctx.moveTo(ca.left, yPx); ctx.lineTo(ca.right, yPx); ctx.stroke();
+          ctx.setLineDash([]);
+          if (ln.label) {
+            ctx.fillStyle = ln.color || 'rgba(0,0,0,0.7)';
+            ctx.font = '500 10px -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif';
+            ctx.textBaseline = 'bottom'; ctx.textAlign = 'right';
+            ctx.fillText(ln.label, ca.right - 4, yPx - 2);
+          }
+          ctx.restore();
+        });
+      }
+    }
+  };
+  Chart.register(markersPlugin);
+
+  // ---------- Per-chart bookkeeping ----------
+  const chartRegistry = [];
+  const metricKinds = {};
+  function resolveMarker(token) {
+    if (KINDS_DRAGGABLE.includes(token)) return { kind: token, color: KIND_COLORS[token] };
+    return STATIC_MARKERS[token] || null;
+  }
+
+  // ---------- Theme ----------
+  const styles = getComputedStyle(document.documentElement);
+  const axisColor  = styles.getPropertyValue('--axis').trim()  || 'rgba(0,0,0,0.55)';
+  const gridColor  = styles.getPropertyValue('--grid').trim()  || 'rgba(0,0,0,0.07)';
+  const labelColor = styles.getPropertyValue('--label').trim() || 'rgba(0,0,0,0.78)';
+  const hollowFill = styles.getPropertyValue('--point-hollow-fill').trim() || '#ffffff';
+  const zeroColor  = styles.getPropertyValue('--zero-line').trim() || 'rgba(0,0,0,0.3)';
+  const powerLabels = power.map(p => Math.round(p) + ' W');
+
+  function buildLineDataset(values, color, kindArr, yAxisID) {
+    const points = power.map((p,i) => ({x: p, y: values[i]}));
+    const pointBg     = kindArr.map(k => k === 'long' ? color : hollowFill);
+    const pointBorder = kindArr.map(_ => color);
+    const ds = {
+      data: points, borderColor: color, backgroundColor: color,
+      pointBackgroundColor: pointBg, pointBorderColor: pointBorder,
+      pointBorderWidth: 1.8, pointRadius: 5.5, pointHoverRadius: 7,
+      borderWidth: 1.8, tension: 0.25, fill: false
+    };
+    if (yAxisID) ds.yAxisID = yAxisID;
+    return ds;
+  }
+  function buildBarDataset(values, kindArr) {
+    const POS = '46, 139, 87'; const NEG = '196, 60, 60';
+    const bg = values.map((v, i) => {
+      const base = v >= 0 ? POS : NEG;
+      const alpha = kindArr[i] === 'long' ? 1.0 : 0.55;
+      return `rgba(${base}, ${alpha})`;
+    });
+    const border = values.map((v) => v >= 0 ? '#1f6e3e' : '#9c2929');
+    return { data: values.slice(), backgroundColor: bg, borderColor: border, borderWidth: 1 };
+  }
+  // Slope-line dataset: line for SmO2 slope where each segment is colored by the sign
+  // of its right-hand endpoint (green = ending positive / re-oxygenating, red = ending
+  // negative / desaturating). Points themselves are also colored by their own sign so
+  // a single positive point in a sea of negatives stands out.
+  function buildSlopeLineDataset(values, kindArr) {
+    const POS = '#1f7a3e';   // dark green
+    const NEG = '#c43c3c';   // red
+    const points = power.map((p,i) => ({x: p, y: values[i]}));
+    const pointBorder = values.map(v => v >= 0 ? POS : NEG);
+    const pointBg = values.map((v,i) =>
+      kindArr[i] === 'long' ? (v >= 0 ? POS : NEG) : hollowFill);
+    return {
+      data: points,
+      borderColor: '#888',  // fallback before segment styler runs
+      pointBackgroundColor: pointBg,
+      pointBorderColor: pointBorder,
+      pointBorderWidth: 2.2,
+      pointRadius: 5.5,
+      pointHoverRadius: 7,
+      borderWidth: 2.4,
+      tension: 0.15,
+      fill: false,
+      segment: {
+        // Color by the dominant endpoint — whichever side of zero has the larger |y|.
+        // This avoids painting a mostly-positive line red just because it dips slightly
+        // negative at the end (or vice versa).
+        borderColor: ctx => {
+          const y0 = ctx.p0.parsed.y;
+          const y1 = ctx.p1.parsed.y;
+          const dominant = Math.abs(y0) >= Math.abs(y1) ? y0 : y1;
+          return dominant >= 0 ? POS : NEG;
+        }
+      }
+    };
+  }
+
+  // Builder for "step segments" charts (e.g., SmO2 trend per step):
+  // Each step is its own short, disconnected, tilted line going from start→end values.
+  // Returns an ARRAY of datasets (one per step) so each segment can have its own color.
+  // Color = green if SmO2 rose during the step (re-oxygenating), red if it fell (desaturating).
+  function buildStepSegmentDatasets(starts, ends, powerArr, kindArr, fmtFn) {
+    const POS = '#1f7a3e', NEG = '#c43c3c';
+    const segWidth = 4;  // ±4 W around each step's mean power
+    return powerArr.map((p, i) => {
+      const s = starts[i], e = ends[i];
+      const rising = e >= s;
+      const color = rising ? POS : NEG;
+      const isLong = kindArr[i] === 'long';
+      return {
+        label: `${Math.round(p)} W`,
+        data: [
+          { x: p - segWidth, y: s },
+          { x: p + segWidth, y: e }
+        ],
+        borderColor: color,
+        backgroundColor: color,
+        pointBackgroundColor: isLong ? color : hollowFill,
+        pointBorderColor: color,
+        pointBorderWidth: 1.8,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        borderWidth: 2.6,
+        tension: 0,
+        fill: false,
+        // Per-dataset datalabels: each endpoint pushed AWAY from the segment vertically.
+        // Higher endpoint sits above the line, lower endpoint sits below.
+        datalabels: {
+          align: (ctx) => {
+            const dat = ctx.dataset.data;
+            const my = dat[ctx.dataIndex].y;
+            const oth = dat[1 - ctx.dataIndex].y;
+            return my >= oth ? 'top' : 'bottom';
+          },
+          anchor: (ctx) => {
+            const dat = ctx.dataset.data;
+            const my = dat[ctx.dataIndex].y;
+            const oth = dat[1 - ctx.dataIndex].y;
+            return my >= oth ? 'end' : 'start';
+          },
+          offset: 4,
+          color: color,
+          font: { size: 9, weight: '600' },
+          formatter: (val) => fmtFn(val.y) + '%',
+          display: 'auto',
+          clamp: true
+        }
+      };
+    });
+  }
+
+  // Builder for the recovery (test 2) line: dashed, square markers, same hue as initial,
+  // slightly faded so test 1 stays primary. Shows value + Δ% as 2-line data labels.
+  function buildRecoveryDataset(recValues, recPower, color, deltas, fmtFn, labelAlign) {
+    const points = recPower.map((p,i) => ({x: p, y: recValues[i]}));
+    const align = labelAlign || 'bottom';   // default: below the recovery point
+    const anchor = align === 'top' ? 'end' : 'start';
+    return {
+      data: points,
+      borderColor: color,
+      backgroundColor: color,
+      borderDash: [6, 4],
+      borderWidth: 1.6,
+      pointStyle: 'rect',
+      pointBackgroundColor: color,
+      pointBorderColor: color,
+      pointRadius: 4.5,
+      pointHoverRadius: 6,
+      tension: 0.2,
+      fill: false,
+      datalabels: {
+        align: align,
+        anchor: anchor,
+        offset: 6,
+        color: color,
+        font: { size: 10, weight: '600' },
+        formatter: (val, ctx) => {
+          const v = fmtFn(val.y);
+          const d = deltas ? deltas[ctx.dataIndex] : null;
+          return d == null ? v : [v, fmtDelta(d)];   // 2-line label
+        },
+        // Force all 4 recovery labels to render — recovery has only 4 points so
+        // overlap risk is low and "missing label" is worse than slight crowding.
+        display: true,
+        clamp: true,
+        textAlign: 'center'
+      }
+    };
+  }
+
+  function recoveryDataFor(metricId) {
+    const r = TEST_DATA.recovery;
+    if (!r || !r.metrics || !r.metrics[metricId]) return null;
+    return { values: r.metrics[metricId], power: r.power };
+  }
+
+  // Build matched-watt comparison rows between test 1 and recovery.
+  // Returns array of { w, v1, v2, delta_pct } for each recovery point.
+  function buildMatchedComparison(metricId, fmtFn) {
+    const rec = recoveryDataFor(metricId);
+    if (!rec) return [];
+    const m = metrics.find(x => x.id === metricId);
+    if (!m || !m.data) return [];
+    const out = [];
+    rec.power.forEach((rp, ri) => {
+      // Find closest matching power in test 1 (within ±5 W)
+      let bestIdx = -1, bestDiff = Infinity;
+      for (let i = 0; i < power.length; i++) {
+        const d = Math.abs(power[i] - rp);
+        if (d < bestDiff) { bestDiff = d; bestIdx = i; }
+      }
+      if (bestIdx < 0 || bestDiff > 5) return;
+      const v1 = m.data[bestIdx];
+      const v2 = rec.values[ri];
+      const delta_pct = (v1 !== 0) ? ((v2 - v1) / Math.abs(v1)) * 100 : null;
+      out.push({ w: Math.round(rp / 10) * 10, v1, v2, delta_pct });
+    });
+    return out;
+  }
+  function fmtDelta(d) {
+    if (d == null || !isFinite(d)) return '—';
+    const sign = d > 0 ? '+' : '';
+    if (Math.abs(d) < 1) return `${sign}${d.toFixed(0)}%`;
+    return `${sign}${Math.round(d)}%`;
+  }
+
+  // ---------- Render charts ----------
+  const grid = document.getElementById('grid');
+  const recoveryGrid = document.getElementById('grid-recovery');
+
+  function renderMetricChart(m, parent, isRecoveryView) {
+    try {
+      const recovery = isRecoveryView ? recoveryDataFor(m.id) : null;
+      const card = document.createElement('div');
+      card.className = 'card';
+      const canvasId = (isRecoveryView ? 'rec_ch_' : 'ch_') + m.id;
+      const stripId = 'recstrip_' + m.id; // only used in recovery view
+      card.innerHTML = `
+        <p class="card-title">${m.title}${m.unit ? ' <span class="unit">(' + m.unit + ')</span>' : ''}</p>
+        <p class="card-note">${m.note}</p>
+        <div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>
+        ${isRecoveryView && recovery ? `<div class="recovery-strip" id="${stripId}"></div>` : ''}`;
+      parent.appendChild(card);
+
+      const fmtFn = FMT[m.fmtKind] || FMT['1'];
+      // Markers / drag are ONLY on the original (initial-test) charts.
+      // Recovery comparison charts are pure visualization, no markers.
+      const resolvedMarkers = isRecoveryView ? [] :
+        (m.markers || []).map(resolveMarker).filter(Boolean);
+      const draggableKinds = isRecoveryView ? [] :
+        resolvedMarkers.filter(ln => KINDS_DRAGGABLE.includes(ln.kind)).map(ln => ln.kind);
+      const hLinesRaw = isRecoveryView ? [] :
+        (m.hLines || []).map(h => Object.assign({}, h, { color: STATIC_HLINE_COLOR[h.kind] || h.color }));
+      if (!isRecoveryView) metricKinds[m.id] = new Set(draggableKinds);
+
+      let datasets;
+      if (m.bar) datasets = [buildBarDataset(m.data, kind)];
+      else if (m.slopeLine) datasets = [buildSlopeLineDataset(m.data, kind)];
+      else if (m.stepSegments) datasets = buildStepSegmentDatasets(m.startVals, m.endVals, power, kind, fmtFn);
+      else if (m.multi) datasets = m.series.map(s => buildLineDataset(s.data, s.color, kind, s.yAxisID));
+      else datasets = [buildLineDataset(m.data, m.color, kind)];
+
+      // Recovery line — only in the recovery section, only on single-line metrics
+      if (isRecoveryView && recovery && !m.multi && !m.slopeLine && !m.bar) {
+        // Per-point % deltas vs matched-watt initial values (parallel to recovery.power)
+        const recDeltas = recovery.power.map((rp, ri) => {
+          let bestIdx = -1, bestDiff = Infinity;
+          for (let i = 0; i < power.length; i++) {
+            const d = Math.abs(power[i] - rp);
+            if (d < bestDiff) { bestDiff = d; bestIdx = i; }
+          }
+          if (bestIdx < 0 || bestDiff > 5) return null;
+          const v1 = m.data[bestIdx];
+          const v2 = recovery.values[ri];
+          return (v1 !== 0) ? ((v2 - v1) / Math.abs(v1)) * 100 : null;
+        });
+        datasets.push(buildRecoveryDataset(recovery.values, recovery.power, m.color, recDeltas, fmtFn, m.recLabelAlign));
+      }
+
+      let scales;
+      if (m.dualAxis) {
+        const lc = m.series[0].color, rc = m.series[1].color;
+        scales = {
+          x: { type:'linear', min:110, max:270, ticks:{color:axisColor,font:{size:11},stepSize:20,callback:(v)=>v+' W'},
+               grid:{color:gridColor}, title:{display:true,text:'Power',color:axisColor,font:{size:11}} },
+          yLeft:  { type:'linear', position:'left',  ticks:{color:lc,font:{size:11},maxTicksLimit:6}, grid:{color:gridColor},
+                    title:{display:true,text:m.series[0].label,color:lc,font:{size:11}} },
+          yRight: { type:'linear', position:'right', ticks:{color:rc,font:{size:11},maxTicksLimit:6}, grid:{drawOnChartArea:false},
+                    title:{display:true,text:m.series[1].label,color:rc,font:{size:11}} }
+        };
+      } else {
+        const yScale = { ticks:{color:axisColor,font:{size:11},maxTicksLimit:6}, grid:{color:gridColor} };
+        if (m.id === 'fat' || m.id === 'cho') yScale.beginAtZero = true;
+        if (m.yMin != null) yScale.min = m.yMin;
+        if (m.yMax != null) yScale.max = m.yMax;
+        if (m.bar) {
+          scales = {
+            x: { type:'category', ticks:{color:axisColor,font:{size:10},autoSkip:false,maxRotation:0},
+                 grid:{color:gridColor,display:false}, title:{display:true,text:'Power',color:axisColor,font:{size:11}} },
+            y: yScale
+          };
+        } else {
+          scales = {
+            x: { type:'linear', min:110, max:270, ticks:{color:axisColor,font:{size:11},stepSize:20,callback:(v)=>v+' W'},
+                 grid:{color:gridColor}, title:{display:true,text:'Power',color:axisColor,font:{size:11}} },
+            y: yScale
+          };
+        }
+      }
+
+      const plugins = {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => m.bar ? items[0].label : (Math.round(items[0].parsed.x) + ' W'),
+            label: (ctx) => {
+              const sl = m.multi ? m.series[ctx.datasetIndex].label : m.title;
+              const prefix = (isRecoveryView && ctx.datasetIndex === 1) ? 'Recovery ' : '';
+              return prefix + sl + ': ' + fmtFn(ctx.parsed.y) + (m.unit ? ' '+m.unit : '');
+            }
+          }
+        }
+      };
+
+      if (m.bar) {
+        plugins.datalabels = {
+          align: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'end' : 'start',
+          anchor: (ctx) => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'end' : 'start',
+          offset: 3, color: labelColor, font: { size:9, weight:'500' },
+          formatter: (val) => fmtFn(val), display: 'auto', clamp: true, rotation: -60
+        };
+      } else if (m.stepSegments) {
+        // Per-dataset datalabels are configured inside buildStepSegmentDatasets.
+        // Disable the chart-level config so it doesn't fight the per-dataset one.
+        plugins.datalabels = { display: false };
+      } else if (m.slopeLine) {
+        plugins.datalabels = {
+          align: (ctx) => (ctx.dataset.data[ctx.dataIndex] && ctx.dataset.data[ctx.dataIndex].y >= 0) ? 'top' : 'bottom',
+          anchor: (ctx) => (ctx.dataset.data[ctx.dataIndex] && ctx.dataset.data[ctx.dataIndex].y >= 0) ? 'end' : 'start',
+          offset: 5,
+          color: (ctx) => (ctx.dataset.data[ctx.dataIndex] && ctx.dataset.data[ctx.dataIndex].y >= 0) ? '#1f7a3e' : '#c43c3c',
+          font: { size:10, weight:'600' },
+          formatter: (val) => fmtFn(val.y),
+          display: 'auto', clamp: true
+        };
+      } else if (!m.multi) {
+        // Per-metric override: m.labelAlign='top' or 'bottom' forces all labels to one side;
+        // otherwise alternate top/bottom by index for a zigzag pattern.
+        const fixed = m.labelAlign;
+        plugins.datalabels = {
+          align:  fixed ? fixed : ((ctx) => ctx.dataIndex % 2 === 0 ? 'top' : 'bottom'),
+          anchor: fixed === 'top' ? 'end'
+                : fixed === 'bottom' ? 'start'
+                : ((ctx) => ctx.dataIndex % 2 === 0 ? 'end' : 'start'),
+          offset: 5, color: labelColor, font: { size:11, weight:'500' },
+          formatter: (val) => fmtFn(val.y), display: 'auto', clamp: true
+        };
+      } else {
+        plugins.datalabels = {
+          align: (ctx) => ctx.datasetIndex === 0 ? 'top' : 'bottom',
+          anchor: (ctx) => ctx.datasetIndex === 0 ? 'end' : 'start',
+          offset: 5, color: (ctx) => m.series[ctx.datasetIndex].color,
+          font: { size:9, weight:'500' },
+          formatter: (val) => fmtFn(val.y),
+          display: 'auto', clamp: true
+        };
+      }
+
+      if (m.goal) plugins.goalBand = { from:m.goal.from, to:m.goal.to, label:m.goal.label,
+                                        color:'rgba(220,50,50,0.10)', edge:'rgba(220,50,50,0.55)' };
+      if (m.showZero) plugins.zeroLine = { show:true, color:zeroColor };
+      if (resolvedMarkers.length || hLinesRaw.length) {
+        plugins.markers = { metricId: m.id, lines: resolvedMarkers, hLines: hLinesRaw };
+      }
+
+      const chart = new Chart(document.getElementById(canvasId), {
+        type: m.bar ? 'bar' : 'line',
+        data: m.bar ? { labels: powerLabels, datasets } : { datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 18, bottom: 8, left: 4, right: 14 } },
+          plugins, scales,
+          onClick: isRecoveryView ? null : ((evt, els, c) => handleChartClick(evt, c, m))
+        }
+      });
+
+      // Drag handlers + chartRegistry only for the original (initial-test) charts
+      if (!isRecoveryView) {
+        if (draggableKinds.length) attachDragHandlers(chart, m.id, draggableKinds);
+        chartRegistry.push({ chart, metricId: m.id, kinds: draggableKinds, metric: m });
+      }
+
+      // Populate the recovery comparison strip (recovery view only)
+      if (isRecoveryView && recovery) {
+        const strip = document.getElementById(stripId);
+        if (strip) {
+          const rows = buildMatchedComparison(m.id, fmtFn);
+          if (rows.length) {
+            const cells = rows.map(r => {
+              const dCls = (r.delta_pct == null || Math.abs(r.delta_pct) < 1) ? 'rec-delta-flat' : 'rec-delta';
+              return `<div class="rec-row">
+                <span class="rec-w">${r.w} W</span>
+                <span class="rec-vals">${fmtFn(r.v1)}<span style="color:var(--text-faint);"> → </span>${fmtFn(r.v2)}</span>
+                <span class="${dCls}">${fmtDelta(r.delta_pct)}</span>
+              </div>`;
+            }).join('');
+            strip.innerHTML = `<div class="recovery-strip-label">Initial → Recovery (Δ at matched watts)</div>
+              <div class="recovery-strip-grid">${cells}</div>`;
+          } else {
+            strip.style.display = 'none';
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to render chart "' + m.id + '" (' + (isRecoveryView ? 'recovery' : 'initial') + '):', err);
+      const errCard = document.createElement('div');
+      errCard.className = 'card';
+      errCard.innerHTML = '<p class="card-title">' + m.title + '</p>' +
+        '<p style="color:#991b1b;font-size:12px;">Chart failed to render: ' + err.message + '</p>';
+      parent.appendChild(errCard);
+    }
+  }
+
+  // First pass: original charts in their named section grids (or fall back to grid)
+  metrics.forEach(m => {
+    const sectionGrid = m.section ? document.querySelector('[data-section-grid="' + m.section + '"]') : null;
+    renderMetricChart(m, sectionGrid || grid, false);
+  });
+
+  // Second pass: recovery comparison charts in the dedicated section
+  if (recoveryGrid) {
+    metrics.forEach(m => {
+      if (recoveryDataFor(m.id)) renderMetricChart(m, recoveryGrid, true);
+    });
+  }
+
+
+  // ---------- DRAG HANDLERS ----------
+  const HIT_RADIUS = 8;
+  let dragState = null;
+  function attachDragHandlers(chart, metricId, kinds) {
+    const canvas = chart.canvas;
+    function findHitKind(px) {
+      let hit = null, bestDist = Infinity;
+      for (const k of kinds) {
+        const xPx = wattsToPx(chart, getMarkerX(metricId, k));
+        const d = Math.abs(px - xPx);
+        if (d < HIT_RADIUS && d < bestDist) { hit = k; bestDist = d; }
+      }
+      return hit;
+    }
+    canvas.addEventListener('pointerdown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      const ca = chart.chartArea;
+      if (py < ca.top - 4 || py > ca.bottom + 4) return;
+      const k = findHitKind(px);
+      if (!k) return;
+      e.preventDefault();
+      dragState = { chart, metricId, kind: k };
+      chart._activeMarkerKind = k;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      canvas.style.cursor = 'ew-resize';
+      chart.update('none');
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      if (dragState && dragState.chart === chart) {
+        let w = pxToWatts(chart, px);
+        if (w == null) return;
+        w = Math.max(X_MIN, Math.min(X_MAX, w));
+        setMarkerX(metricId, dragState.kind, w);
+        chart.update('none');
+        updateSummary();
+      } else {
+        const ca = chart.chartArea;
+        if (py >= ca.top - 4 && py <= ca.bottom + 4) {
+          const k = findHitKind(px);
+          canvas.style.cursor = k ? 'ew-resize' : 'default';
+        } else canvas.style.cursor = 'default';
+      }
+    });
+    function endDrag(e) {
+      if (dragState && dragState.chart === chart) {
+        dragState = null;
+        chart._activeMarkerKind = null;
+        chart.update('none');
+      }
+      canvas.style.cursor = 'default';
+      try { if (e && e.pointerId != null) canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+    canvas.addEventListener('pointerleave', () => { canvas.style.cursor = 'default'; });
+  }
+
+  // ---------- CLICK-TO-SET ----------
+  const popover = document.getElementById('click-popover');
+  const popoverWLabel = document.getElementById('popover-w');
+  const popoverButtons = document.getElementById('popover-buttons');
+  let popoverContext = null;
+
+  function handleChartClick(evt, chart, metric) {
+    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+    if (!points || !points.length) { hidePopover(); return; }
+    const ds = chart.data.datasets[points[0].datasetIndex];
+    const idx = points[0].index;
+    const datum = ds.data[idx];
+    let w;
+    if (datum && typeof datum === 'object' && datum.x != null) w = datum.x;
+    else w = power[idx];
+    w = Math.round(w);
+
+    const validKinds = metricKinds[metric.id] ? Array.from(metricKinds[metric.id]) : [];
+    if (!validKinds.length) { hidePopover(); return; }
+
+    popoverContext = { metricId: metric.id, w, kinds: validKinds };
+    popoverWLabel.textContent = `${w} W`;
+    popoverButtons.innerHTML = '';
+    KINDS_DRAGGABLE.forEach(k => {
+      if (!validKinds.includes(k)) return;
+      const btn = document.createElement('button');
+      btn.className = 'popover-btn';
+      btn.dataset.kind = k;
+      btn.textContent = k;
+      btn.addEventListener('click', () => {
+        setMarkerX(popoverContext.metricId, k, popoverContext.w);
+        chartRegistry.forEach(({ chart }) => chart.update('none'));
+        updateSummary();
+        hidePopover();
+      });
+      popoverButtons.appendChild(btn);
+    });
+
+    const padding = 8;
+    const popW = 240, popH = 80;
+    let left = evt.native ? evt.native.clientX + 12 : evt.clientX + 12;
+    let top  = evt.native ? evt.native.clientY + 12 : evt.clientY + 12;
+    if (left + popW > window.innerWidth - padding)  left = (evt.native ? evt.native.clientX : evt.clientX) - popW - 12;
+    if (top  + popH > window.innerHeight - padding) top  = (evt.native ? evt.native.clientY : evt.clientY) - popH - 12;
+    popover.style.left = Math.max(padding, left) + 'px';
+    popover.style.top  = Math.max(padding, top)  + 'px';
+    popover.classList.add('visible');
+  }
+  function hidePopover() { popover.classList.remove('visible'); popoverContext = null; }
+  document.addEventListener('mousedown', (e) => {
+    if (!popover.classList.contains('visible')) return;
+    if (popover.contains(e.target)) return;
+    if (e.target && e.target.tagName === 'CANVAS') return;
+    hidePopover();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hidePopover(); });
+
+  // ---------- SUMMARY ----------
+  function metricTitle(id) { const mm = metrics.find(x => x.id === id); return mm ? mm.title : id; }
+  function collectSelections(kindStr) {
+    const out = [];
+    chartRegistry.forEach(({ metricId, kinds }) => {
+      if (!kinds.includes(kindStr)) return;
+      out.push({ metricId, value: getMarkerX(metricId, kindStr) });
+    });
+    return out;
+  }
+  // Returns the canonical W value for a threshold kind: mean of charts if any,
+  // else the global stored value. null if neither.
+  function thresholdWatts(kindStr) {
+    const items = collectSelections(kindStr);
+    if (items.length === 0) return getGlobal(kindStr);
+    return items.reduce((a,b) => a + b.value, 0) / items.length;
+  }
+  // Linear interpolation of HR at a given power, from per-step hr metric data
+  function hrAtPower(p) {
+    const hrMetric = metrics.find(m => m.id === 'hr');
+    if (!hrMetric || !hrMetric.data) return null;
+    const ps = power, hs = hrMetric.data;
+    if (p <= ps[0])           return hs[0];
+    if (p >= ps[ps.length-1]) return hs[ps.length-1];
+    for (let i = 0; i < ps.length-1; i++) {
+      if (p >= ps[i] && p <= ps[i+1]) {
+        const frac = (p - ps[i]) / (ps[i+1] - ps[i]);
+        return hs[i] + frac * (hs[i+1] - hs[i]);
+      }
+    }
+    return null;
+  }
+  function updateSummary() {
+    const peakPower = (TEST_DATA.peaks && TEST_DATA.peaks.power_1m_W) || null;
+    KINDS_DRAGGABLE.forEach(kindStr => {
+      try {
+        const items = collectSelections(kindStr);
+        const lc = kindStr.toLowerCase();
+        const valEl = document.getElementById(lc + '-value');
+        const rngEl = document.getElementById(lc + '-range');
+        const detEl = document.getElementById(lc + '-detail');
+        const pctEl = document.getElementById(lc + '-pct');
+        const inputEl = document.querySelector(`.stat-input[data-kind="${kindStr}"]`);
+
+        let canonW;   // canonical W value for this threshold (for % of peak calc)
+        if (items.length === 0) {
+          const g = getGlobal(kindStr);
+          canonW = g;
+          if (valEl) valEl.textContent = `${Math.round(g)} W`;
+          if (rngEl) rngEl.textContent = '';
+          if (detEl) detEl.innerHTML = '';
+          if (inputEl && document.activeElement !== inputEl) inputEl.value = Math.round(g);
+        } else {
+          const vals = items.map(i => i.value);
+          const mean = vals.reduce((a,b)=>a+b,0) / vals.length;
+          canonW = mean;
+          const min = Math.min(...vals), max = Math.max(...vals);
+          const sd = Math.sqrt(vals.reduce((a,b)=>a+(b-mean)*(b-mean),0) / vals.length);
+          if (valEl) valEl.textContent = `${Math.round(mean)} W`;
+          if (rngEl) rngEl.textContent = `(${Math.round(min)}–${Math.round(max)} W, n=${vals.length}, SD ${sd.toFixed(1)})`;
+          if (detEl) detEl.innerHTML = items.map(i => `<div>${metricTitle(i.metricId)}: <strong>${Math.round(i.value)} W</strong></div>`).join('');
+          if (inputEl && document.activeElement !== inputEl) inputEl.value = Math.round(mean);
+        }
+        // Update % of peak 1-min power (only present on cards that have a *-pct element)
+        if (pctEl) {
+          if (peakPower && canonW != null) {
+            pctEl.textContent = `${(canonW / peakPower * 100).toFixed(0)}% of peak 1-min power (${Math.round(peakPower)} W)`;
+          } else {
+            pctEl.textContent = '';
+          }
+        }
+      } catch (err) {
+        console.error('[updateSummary] error processing', kindStr, ':', err);
+      }
+    });
+    try { updateVO2Card(); } catch (err) { console.error('[updateVO2Card]', err); }
+    try { updateHRThresholdsCard(); } catch (err) { console.error('[updateHRThresholdsCard]', err); }
+  }
+
+  // ---------- HR @ THRESHOLDS ----------
+  function updateHRThresholdsCard() {
+    const list = document.getElementById('hr-thresholds-list');
+    if (!list) return;
+    const rows = KINDS_DRAGGABLE.map(k => {
+      const w = thresholdWatts(k);
+      if (w == null) return null;
+      const bpm = hrAtPower(w);
+      return { kind: k, w, bpm };
+    }).filter(Boolean);
+    if (!rows.length) {
+      list.innerHTML = '<p class="stat-relative">Set thresholds below to populate.</p>';
+      return;
+    }
+    list.innerHTML = rows.map(r =>
+      `<div class="hr-row" data-kind="${r.kind}">
+         <span class="hr-kind">${r.kind}</span>
+         <span class="hr-power">${Math.round(r.w)} W</span>
+         <span class="hr-bpm">${r.bpm != null ? Math.round(r.bpm) + ' bpm' : '—'}</span>
+       </div>`).join('');
+  }
+
+  // ---------- VO2 PEAK + OTHER COMPUTED PEAKS ----------
+  function updateVO2Card() {
+    const ml_min = TEST_DATA.vo2_peak.ml_min;
+    const w = parseFloat(document.getElementById('athlete-weight').value);
+    document.getElementById('vo2-abs').textContent = `${(ml_min / 1000).toFixed(2)} L/min`;
+    if (w && w > 30) {
+      document.getElementById('vo2-rel').textContent = `${(ml_min / w).toFixed(1)} mL/kg/min @ ${w.toFixed(1)} kg`;
+    } else {
+      document.getElementById('vo2-rel').textContent = `Enter weight above to compute mL/kg/min`;
+    }
+    document.getElementById('vo2-note').textContent =
+      `Highest 15-s avg, occurred ~${TEST_DATA.vo2_peak.occurred_at_W} W (t=${TEST_DATA.vo2_peak.occurred_at_t_s}s).`;
+    // Recovery row
+    const recEl = document.getElementById('vo2-rec');
+    const recVo2 = TEST_DATA.recovery && TEST_DATA.recovery.vo2_peak ? TEST_DATA.recovery.vo2_peak.ml_min : null;
+    if (recEl && recVo2 != null) {
+      const d = ((recVo2 - ml_min) / ml_min) * 100;
+      const recRel = (w && w > 30) ? `, ${(recVo2 / w).toFixed(1)} mL/kg/min` : '';
+      recEl.textContent = `Recovery: ${(recVo2 / 1000).toFixed(2)} L/min${recRel}  (${fmtDelta(d)})`;
+    }
+  }
+
+  // Static peaks from CSV (don't change with thresholds — set once)
+  function renderStaticPeaks() {
+    const p = TEST_DATA.peaks || {};
+    const r = (TEST_DATA.recovery && TEST_DATA.recovery.peaks) || {};
+    const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    const setRec = (id, initVal, recVal, unit) => {
+      const el = document.getElementById(id);
+      if (!el || initVal == null || recVal == null) return;
+      const d = ((recVal - initVal) / initVal) * 100;
+      el.textContent = `Recovery: ${typeof recVal === 'number' ? (Number.isInteger(recVal) ? recVal : recVal.toFixed(1)) : recVal}${unit}  (${fmtDelta(d)})`;
+    };
+    if (p.tv_1m_mL != null)      set('peak-tv',     `${Math.round(p.tv_1m_mL)} mL`);
+    if (p.tvpct_1m_pct != null)  set('peak-tvpct',  `${p.tvpct_1m_pct.toFixed(1)} %`);
+    if (p.ve_15s_Lmin != null)   set('peak-ve',     `${p.ve_15s_Lmin.toFixed(1)} L/min`);
+    if (p.rr_15s_brmin != null)  set('peak-rr',     `${p.rr_15s_brmin.toFixed(1)} br/min`);
+    if (p.hr_1s_bpm != null)     set('peak-hr',     `${Math.round(p.hr_1s_bpm)} bpm`);
+    if (p.power_1m_W != null)    set('peak-power',  `${Math.round(p.power_1m_W)} W`);
+    setRec('peak-tv-rec',    p.tv_1m_mL,     r.tv_1m_mL,     ' mL');
+    setRec('peak-tvpct-rec', p.tvpct_1m_pct, r.tvpct_1m_pct, ' %');
+    setRec('peak-ve-rec',    p.ve_15s_Lmin,  r.ve_15s_Lmin,  ' L/min');
+    setRec('peak-rr-rec',    p.rr_15s_brmin, r.rr_15s_brmin, ' br/min');
+    setRec('peak-hr-rec',    p.hr_1s_bpm,    r.hr_1s_bpm,    ' bpm');
+    setRec('peak-power-rec', p.power_1m_W,   r.power_1m_W,   ' W');
+  }
+
+  // Recovery section peak cards: framed as "Recovery value · Initial value (Δ)"
+  function renderRecoverySectionPeaks() {
+    const r = TEST_DATA.recovery;
+    if (!r) return;
+    const p = TEST_DATA.peaks || {};
+    const rp = r.peaks || {};
+    const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    const setInit = (id, recVal, initVal, unit) => {
+      const el = document.getElementById(id);
+      if (!el || recVal == null || initVal == null) return;
+      const d = ((recVal - initVal) / initVal) * 100;
+      el.textContent = `Initial: ${Number.isInteger(initVal) ? initVal : initVal.toFixed(1)}${unit}  (${fmtDelta(d)})`;
+    };
+    // VO2 peak (recovery)
+    if (r.vo2_peak) {
+      set('rec2-vo2-abs', `${(r.vo2_peak.ml_min / 1000).toFixed(2)} L/min`);
+      const w = parseFloat(document.getElementById('athlete-weight').value);
+      const relEl = document.getElementById('rec2-vo2-rel');
+      if (relEl) {
+        if (w && w > 30) {
+          relEl.textContent = `${(r.vo2_peak.ml_min / w).toFixed(1)} mL/kg/min @ ${w.toFixed(1)} kg`;
+        } else {
+          relEl.textContent = `Enter weight above to compute mL/kg/min`;
+        }
+      }
+      const initEl = document.getElementById('rec2-vo2-init');
+      if (initEl && TEST_DATA.vo2_peak) {
+        const d = ((r.vo2_peak.ml_min - TEST_DATA.vo2_peak.ml_min) / TEST_DATA.vo2_peak.ml_min) * 100;
+        initEl.textContent = `Initial: ${(TEST_DATA.vo2_peak.ml_min / 1000).toFixed(2)} L/min  (${fmtDelta(d)})`;
+      }
+    }
+    // Time-series peaks
+    if (rp.tv_1m_mL != null)     set('rec2-peak-tv',    `${Math.round(rp.tv_1m_mL)} mL`);
+    if (rp.tvpct_1m_pct != null) set('rec2-peak-tvpct', `${rp.tvpct_1m_pct.toFixed(1)} %`);
+    if (rp.ve_15s_Lmin != null)  set('rec2-peak-ve',    `${rp.ve_15s_Lmin.toFixed(1)} L/min`);
+    if (rp.rr_15s_brmin != null) set('rec2-peak-rr',    `${rp.rr_15s_brmin.toFixed(1)} br/min`);
+    if (rp.hr_1s_bpm != null)    set('rec2-peak-hr',    `${Math.round(rp.hr_1s_bpm)} bpm`);
+    if (rp.power_1m_W != null)   set('rec2-peak-power', `${Math.round(rp.power_1m_W)} W`);
+    setInit('rec2-peak-tv-init',    rp.tv_1m_mL,     p.tv_1m_mL,     ' mL');
+    setInit('rec2-peak-tvpct-init', rp.tvpct_1m_pct, p.tvpct_1m_pct, ' %');
+    setInit('rec2-peak-ve-init',    rp.ve_15s_Lmin,  p.ve_15s_Lmin,  ' L/min');
+    setInit('rec2-peak-rr-init',    rp.rr_15s_brmin, p.rr_15s_brmin, ' br/min');
+    setInit('rec2-peak-hr-init',    rp.hr_1s_bpm,    p.hr_1s_bpm,    ' bpm');
+    setInit('rec2-peak-power-init', rp.power_1m_W,   p.power_1m_W,   ' W');
+  }
+
+  // ---------- ATHLETE FORM ----------
+  function slugify(s) {
+    return (s || '').toString().toLowerCase().replace(/[^\w\s-]/g, '').trim()
+      .replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 60);
+  }
+  function autoTestId(name, date) {
+    const n = slugify(name);
+    const d = (date || '').slice(0, 10);
+    if (!n && !d) return TEST_DATA.defaultTestId;
+    return `${n || 'athlete'}-${d || 'undated'}`;
+  }
+  const fields = {
+    name:   document.getElementById('athlete-name'),
+    height: document.getElementById('athlete-height'),
+    weight: document.getElementById('athlete-weight'),
+    date:   document.getElementById('athlete-date'),
+    testId: document.getElementById('test-id'),
+  };
+  function loadFormForCurrentTest() {
+    const a = getAthlete();
+    fields.name.value   = a.name || '';
+    fields.height.value = a.height_cm != null ? a.height_cm : '';
+    fields.weight.value = a.weight_kg != null ? a.weight_kg : '';
+    fields.date.value   = a.testDate || '';
+    fields.testId.value = currentTestId;
+    updateVO2Card();
+    updateCoverHeader();
+    loadNotesForCurrentTest();
+  }
+
+  // ---------- COVER HEADER ----------
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00');
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+  }
+  function updateCoverHeader() {
+    const a = getAthlete();
+    const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    set('cover-name',   a.name || '—');
+    set('cover-date',   fmtDate(a.testDate));
+    set('cover-height', a.height_cm != null ? `${a.height_cm} cm` : '—');
+    set('cover-weight', a.weight_kg != null ? `${a.weight_kg} kg` : '—');
+  }
+
+  // ---------- NOTES PERSISTENCE ----------
+  function getNote(key) {
+    const store = ensureStore();
+    if (!store.notes) store.notes = {};
+    return (store.notes[key] != null) ? store.notes[key] : ((TEST_DATA.notesDefaults || {})[key] || '');
+  }
+  function setNote(key, value) {
+    const store = ensureStore();
+    if (!store.notes) store.notes = {};
+    store.notes[key] = value;
+    persistState();
+  }
+  function loadNotesForCurrentTest() {
+    document.querySelectorAll('textarea[data-notes-key]').forEach(t => {
+      t.value = getNote(t.dataset.notesKey);
+    });
+  }
+  document.querySelectorAll('textarea[data-notes-key]').forEach(t => {
+    t.addEventListener('input', () => {
+      setNote(t.dataset.notesKey, t.value);
+      flashSaveToast();
+    });
+  });
+  fields.name.addEventListener('input', () => {
+    setAthleteField('name', fields.name.value);
+    updateCoverHeader();
+    if (!fields.testId.dataset.userEdited) {
+      const newId = autoTestId(fields.name.value, fields.date.value);
+      switchTest(newId, true);
+    }
+  });
+  fields.height.addEventListener('input', () => {
+    const v = parseFloat(fields.height.value);
+    setAthleteField('height_cm', isFinite(v) ? v : null);
+    updateCoverHeader();
+  });
+  fields.weight.addEventListener('input', () => {
+    const v = parseFloat(fields.weight.value);
+    setAthleteField('weight_kg', isFinite(v) ? v : null);
+    updateVO2Card();
+    updateCoverHeader();
+    renderRecoverySectionPeaks();
+  });
+  fields.date.addEventListener('input', () => {
+    setAthleteField('testDate', fields.date.value);
+    updateCoverHeader();
+    if (!fields.testId.dataset.userEdited) {
+      const newId = autoTestId(fields.name.value, fields.date.value);
+      switchTest(newId, true);
+    }
+  });
+  fields.testId.addEventListener('input', () => { fields.testId.dataset.userEdited = '1'; });
+  fields.testId.addEventListener('change', () => {
+    const newId = fields.testId.value.trim() || TEST_DATA.defaultTestId;
+    switchTest(newId, false);
+  });
+  function switchTest(newId, keepFields) {
+    if (newId === currentTestId) return;
+    currentTestId = newId;
+    if (!keepFields) loadFormForCurrentTest();
+    chartRegistry.forEach(({ chart }) => chart.update('none'));
+    updateSummary();
+    flashSaveToast();
+  }
+
+  // ---------- MANUAL ENTRY ----------
+  document.querySelectorAll('.btn-apply').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.kind;
+      const input = document.querySelector(`.stat-input[data-kind="${k}"]`);
+      if (!input) return;
+      const v = parseFloat(input.value);
+      if (!isFinite(v)) return;
+      setMarkerForAllCharts(k, v);
+    });
+  });
+  document.querySelectorAll('.stat-input').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const v = parseFloat(input.value);
+        if (isFinite(v)) setMarkerForAllCharts(input.dataset.kind, v);
+        input.blur();
+      } else if (e.key === 'Escape') {
+        // Revert to current mean, then blur
+        input.blur();
+        updateSummary();
+      }
+    });
+    // NOTE: deliberately no blur->updateSummary handler. blur fires *before* click,
+    // so a blur-driven re-sync would clobber the user's typed value before Apply
+    // could read it.
+  });
+
+  // ---------- TOGGLES ----------
+  document.querySelectorAll('.stat-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.toggle);
+      if (!target) return;
+      const open = target.classList.toggle('open');
+      btn.textContent = open ? 'hide contributions ▴' : 'show contributions ▾';
+    });
+  });
+
+  // ---------- RESET ----------
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    if (!confirm('Reset all FM / VT1 / BP / VT2 selections for this test to suggested defaults?')) return;
+    resetAllOverrides();
+    chartRegistry.forEach(({ chart }) => chart.update('none'));
+    updateSummary();
+    flashSaveToast();
+  });
+
+  // ---------- SAVE AS PDF (uses browser print → save-as-PDF) ----------
+  document.getElementById('btn-print').addEventListener('click', () => {
+    chartRegistry.forEach(({ chart }) => chart.resize());
+    setTimeout(() => window.print(), 100);
+  });
+  window.addEventListener('afterprint', () => {
+    chartRegistry.forEach(({ chart }) => chart.resize());
+  });
+
+  // ---------- DOWNLOAD HTML (bakes current state into a fresh self-contained file) ----------
+  document.getElementById('btn-download-html').addEventListener('click', () => {
+    try {
+      // Build the new TEST_DATA: deep-clone the existing one, then overwrite with live state
+      const a = getAthlete();
+      const newTestData = JSON.parse(JSON.stringify(TEST_DATA));
+      // Athlete defaults — overwrite from current form values
+      newTestData.defaultTestId  = currentTestId;
+      newTestData.athleteDefaults.name      = a.name || '';
+      newTestData.athleteDefaults.height_cm = a.height_cm != null ? a.height_cm : null;
+      newTestData.athleteDefaults.weight_kg = a.weight_kg != null ? a.weight_kg : null;
+      newTestData.athleteDefaults.testDate  = a.testDate || '';
+      // Threshold defaults — read current per-chart means or globals
+      const newThresholds = {};
+      ['FM','CM','VT1','BP','VT2'].forEach(k => {
+        const items = collectSelections(k);
+        if (items.length > 0) {
+          newThresholds[k] = Math.round(items.reduce((s,i)=>s+i.value, 0) / items.length);
+        } else {
+          newThresholds[k] = Math.round(getGlobal(k));
+        }
+      });
+      newTestData.thresholdDefaults = newThresholds;
+      // Notes defaults — pull current notes
+      const newNotes = {};
+      document.querySelectorAll('textarea[data-notes-key]').forEach(t => {
+        newNotes[t.dataset.notesKey] = t.value || '';
+      });
+      newTestData.notesDefaults = newNotes;
+
+      // Fetch the original HTML source and replace the TEST_DATA block
+      // We use document.documentElement.outerHTML which is the live, fully-loaded HTML.
+      // Then we rewrite the TEST_DATA assignment with our new one.
+      const liveHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+      // Strategy: find "const TEST_DATA = {" and matched closing "};" then replace.
+      const startMarker = 'const TEST_DATA = {';
+      const startIdx = liveHtml.indexOf(startMarker);
+      if (startIdx < 0) throw new Error('Could not find TEST_DATA in source');
+      // Walk braces to find matching close
+      let depth = 0, i = startIdx + startMarker.length - 1, endIdx = -1;
+      while (i < liveHtml.length) {
+        const ch = liveHtml[i];
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+          depth--;
+          if (depth === 0) { endIdx = i + 1; break; }
+        }
+        i++;
+      }
+      if (endIdx < 0) throw new Error('Could not find end of TEST_DATA block');
+
+      // Stringify TEST_DATA with proper formatting
+      const testDataLiteral = 'const TEST_DATA = ' + JSON.stringify(newTestData, null, 2);
+      const newHtml = liveHtml.substring(0, startIdx) + testDataLiteral + liveHtml.substring(endIdx);
+
+      // Build filename from athlete name + date
+      const slug = (s) => (s||'').toString().toLowerCase().replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'-').slice(0,40);
+      const namePart = slug(a.name) || 'athlete';
+      const datePart = (a.testDate || '').slice(0, 10) || 'undated';
+      const filename = `metabolic_test_${namePart}_${datePart}.html`;
+
+      // Trigger download
+      const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      flashSaveToast();
+      console.info('Downloaded:', filename);
+    } catch (err) {
+      console.error('Download HTML failed:', err);
+      alert('Download failed: ' + err.message + '\nSee console for details.');
+    }
+  });
+
+  // ---------- INIT ----------
+  renderStaticPeaks();
+  loadFormForCurrentTest();
+  renderRecoverySectionPeaks();
+  updateSummary();
+  console.info('%c[Metabolic test] init complete: ' + chartRegistry.length + ' charts, Apply/Print buttons wired', 'color:#2d7a3a;font-weight:bold');
+}
+
+// Boot on DOMContentLoaded. If the DOM is already ready (script at end of body), boot now.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapDashboard);
+} else {
+  bootstrapDashboard();
+}
+</script>
+
+
+</body></html>
